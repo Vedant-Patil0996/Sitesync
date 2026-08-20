@@ -94,11 +94,11 @@ export default function MaterialRequestsPage() {
                   </div>
                   <div className="flex gap-2">
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">PM</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground">PM</span>
                       <StatusBadge status={req.pm_status} />
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Finance</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground">Finance</span>
                       <StatusBadge status={req.finance_status} />
                     </div>
                   </div>
@@ -107,13 +107,13 @@ export default function MaterialRequestsPage() {
               <CardContent>
                 {/* Timeline */}
                 <div className="mb-4 flex items-center gap-2 text-xs">
-                  <div className={`flex items-center gap-1 border-2 border-border px-2 py-1 ${req.pm_status === 'approved' ? 'bg-green-100 dark:bg-green-900' : req.pm_status === 'rejected' ? 'bg-red-100 dark:bg-red-900' : 'bg-amber-100 dark:bg-amber-900'}`}>
+                  <div className={`flex items-center gap-1 border-2 border-border px-2 py-1 ${req.pm_status === 'approved' ? 'bg-green-100 dark:bg-green-900' : req.pm_status === 'rejected' ? 'bg-red-100 dark:bg-red-900' : 'bg-soft-sand/40 dark:bg-soft-sand/10'}`}>
                     {req.pm_status === 'approved' ? <Check className="h-3 w-3" /> : req.pm_status === 'rejected' ? <X className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                     <span className="font-bold">PM: {req.pm_status.replace(/_/g, ' ')}</span>
                     {req.pm_reviewed_by_name && <span className="text-muted-foreground">by {req.pm_reviewed_by_name}</span>}
                   </div>
                   <span className="text-muted-foreground">→</span>
-                  <div className={`flex items-center gap-1 border-2 border-border px-2 py-1 ${req.finance_status === 'approved' ? 'bg-green-100 dark:bg-green-900' : req.finance_status === 'rejected' ? 'bg-red-100 dark:bg-red-900' : req.finance_status === 'pending' ? 'bg-amber-100 dark:bg-amber-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                  <div className={`flex items-center gap-1 border-2 border-border px-2 py-1 ${req.finance_status === 'approved' ? 'bg-green-100 dark:bg-green-900' : req.finance_status === 'rejected' ? 'bg-red-100 dark:bg-red-900' : req.finance_status === 'pending' ? 'bg-soft-sand/40 dark:bg-soft-sand/10' : 'bg-soft-sand/20 dark:bg-soft-sand/10'}`}>
                     {req.finance_status === 'approved' ? <Check className="h-3 w-3" /> : req.finance_status === 'rejected' ? <X className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                     <span className="font-bold">Finance: {req.finance_status.replace(/_/g, ' ')}</span>
                     {req.finance_reviewed_by_name && <span className="text-muted-foreground">by {req.finance_reviewed_by_name}</span>}

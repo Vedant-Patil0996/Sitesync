@@ -34,11 +34,11 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b-2 border-border">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_30%_20%,var(--tw-gradient-stops))] from-brand-200/40 via-background to-background" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_30%_20%,var(--tw-gradient-stops))] from-brand-200/30 via-background to-background" />
         <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
           <div className="grid items-center gap-8 md:grid-cols-2">
             <div className="flex flex-col gap-5">
-              <Badge variant="outline" className="w-fit brutal-badge bg-brand-100 text-brand-800 border-brand-800">
+              <Badge variant="outline" className="w-fit brutal-badge bg-brand-50 text-brand-900 border-brand-900">
                 Built for Indian Construction
               </Badge>
               <h1 className="font-display text-4xl font-black leading-tight tracking-tight md:text-6xl">
@@ -98,7 +98,7 @@ export default function LandingPage() {
               </Card>
               <Card className="absolute -bottom-6 -left-6 -rotate-3 w-48">
                 <CardContent className="pt-5">
-                  <div className="text-xs font-bold uppercase text-muted-foreground">Budget Used</div>
+                  <div className="text-xs font-medium text-muted-foreground">Budget used</div>
                   <div className="font-display text-2xl font-extrabold text-primary">42%</div>
                   <div className="mt-1 h-3 border-2 border-border bg-secondary">
                     <div className="h-full w-[42%] bg-primary" />

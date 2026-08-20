@@ -24,18 +24,18 @@ export default function PaymentsPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase text-muted-foreground">Scheduled</div>
-              <div className="font-display text-2xl font-extrabold text-amber-600">{formatCurrency(totalScheduled)}</div>
+              <div className="text-xs font-semibold text-muted-foreground">Scheduled</div>
+              <div className="font-display text-2xl font-extrabold text-crimson">{formatCurrency(totalScheduled)}</div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-amber-500 shadow-brutal-sm">
-              <Clock className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-soft-sand shadow-brutal-sm">
+              <Clock className="h-5 w-5 text-dark-espresso" />
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase text-muted-foreground">Released</div>
+              <div className="text-xs font-semibold text-muted-foreground">Released</div>
               <div className="font-display text-2xl font-extrabold text-green-600">{formatCurrency(totalReleased)}</div>
             </div>
             <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-green-500 shadow-brutal-sm">

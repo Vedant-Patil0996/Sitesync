@@ -55,17 +55,17 @@ export default function SitesListPage() {
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="border-2 border-border bg-secondary px-2 py-1.5">
-                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Projects</div>
+                      <div className="text-[10px] font-semibold text-muted-foreground">Projects</div>
                       <div className="font-display text-lg font-extrabold">{siteProjects.length}</div>
                     </div>
                     <div className="border-2 border-border bg-secondary px-2 py-1.5">
-                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Alerts</div>
+                      <div className="text-[10px] font-semibold text-muted-foreground">Alerts</div>
                       <div className="font-display text-lg font-extrabold">{siteAlerts.length}</div>
                     </div>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold uppercase text-muted-foreground">Budget Used</span>
+                      <span className="text-xs font-semibold text-muted-foreground">Budget Used</span>
                       <span className="text-xs font-extrabold">{budgetPct}%</span>
                     </div>
                     <div className="h-4 border-2 border-border bg-secondary">

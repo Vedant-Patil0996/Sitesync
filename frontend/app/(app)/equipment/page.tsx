@@ -39,7 +39,7 @@ export default function EquipmentPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase text-muted-foreground">Active</div>
+              <div className="text-xs font-semibold text-muted-foreground">Active</div>
               <div className="font-display text-2xl font-extrabold text-green-600">{equipment.filter((e) => e.status === 'active').length}</div>
             </div>
             <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-green-500 shadow-brutal-sm">
@@ -50,7 +50,7 @@ export default function EquipmentPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase text-muted-foreground">Idle</div>
+              <div className="text-xs font-semibold text-muted-foreground">Idle</div>
               <div className="font-display text-2xl font-extrabold">{equipment.filter((e) => e.status === 'idle').length}</div>
             </div>
             <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-secondary shadow-brutal-sm">
@@ -61,11 +61,11 @@ export default function EquipmentPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold uppercase text-muted-foreground">Maintenance</div>
-              <div className="font-display text-2xl font-extrabold text-amber-600">{equipment.filter((e) => e.status === 'maintenance').length}</div>
+              <div className="text-xs font-semibold text-muted-foreground">Maintenance</div>
+              <div className="font-display text-2xl font-extrabold text-mahogany">{equipment.filter((e) => e.status === 'maintenance').length}</div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-amber-500 shadow-brutal-sm">
-              <Wrench className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-soft-sand shadow-brutal-sm">
+              <Wrench className="h-5 w-5 text-dark-espresso" />
             </div>
           </div>
         </Card>

@@ -41,20 +41,20 @@ export default function ProjectsListPage() {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="border-2 border-border bg-secondary px-2 py-1.5 text-center">
                       <div className="font-display text-lg font-extrabold">{projectTasks.length}</div>
-                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Tasks</div>
+                      <div className="text-[10px] font-semibold text-muted-foreground">Tasks</div>
                     </div>
                     <div className="border-2 border-border bg-secondary px-2 py-1.5 text-center">
                       <div className="font-display text-lg font-extrabold">{completedTasks}</div>
-                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Done</div>
+                      <div className="text-[10px] font-semibold text-muted-foreground">Done</div>
                     </div>
                     <div className="border-2 border-border bg-secondary px-2 py-1.5 text-center">
                       <div className="font-display text-lg font-extrabold">{projectMilestones.length}</div>
-                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Miles.</div>
+                      <div className="text-[10px] font-semibold text-muted-foreground">Miles.</div>
                     </div>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold uppercase text-muted-foreground">Progress</span>
+                      <span className="text-xs font-semibold text-muted-foreground">Progress</span>
                       <span className="text-xs font-extrabold">{project.progress_percent}%</span>
                     </div>
                     <div className="h-3 border-2 border-border bg-secondary">
