@@ -1,12 +1,14 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Menu, Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useAuth } from '@/providers/auth-provider';
 import { ROLE_LABELS } from '@/lib/types';
-import { notifications } from '@/lib/mock-data';
+import { apiFetch } from '@/lib/api';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -14,6 +16,21 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { user, role, logout } = useAuth();
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      if (!user) return;
+      try {
+        const data = await apiFetch<any[]>('/api/v1/notifications');
+        setNotifications(data);
+      } catch (error) {
+        console.error('Failed to load notifications', error);
+      }
+    }
+    fetchNotifications();
+  }, [user]);
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
@@ -30,13 +47,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
         <ThemeToggle />
 
-        <Button variant="outline" size="icon" className="relative" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-sm border-2 border-border bg-destructive text-[10px] font-bold text-destructive-foreground">
-              {unreadCount}
-            </span>
-          )}
+        <Button asChild variant="outline" size="icon" className="relative" aria-label="Notifications">
+          <Link href="/alerts">
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-sm border-2 border-border bg-destructive text-[10px] font-bold text-destructive-foreground">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
         </Button>
 
         {user && (
