@@ -3,6 +3,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.supabase import get_supabase
 from app.db.session import SessionLocal
 from app.models.user import User
+from app.models.site import Site, SiteAssignment
+from app.models.audit import AuditLog
+from sqlalchemy.orm import Session
 
 security = HTTPBearer()
 
@@ -57,3 +60,28 @@ def require_role(*roles: str):
             )
         return user
     return checker
+
+
+def require_site_access(db: Session, user: User, site_id: int, write: bool = False) -> Site:
+    site = db.query(Site).filter(Site.id == site_id, Site.company_id == user.company_id).first()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    if user.role in ("admin", "finance"):
+        return site
+    assigned = db.query(SiteAssignment).filter(
+        SiteAssignment.site_id == site_id,
+        SiteAssignment.user_id == user.id,
+    ).first()
+    if not assigned:
+        raise HTTPException(status_code=403, detail="You are not assigned to this site")
+    return site
+
+
+def audit(db: Session, user: User, action: str, entity_type: str, entity_id: int, metadata: dict | None = None):
+    db.add(AuditLog(
+        user_id=user.id,
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        event_metadata=metadata or {},
+    ))

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ShoppingCart, Check, X, Clock, FileText } from 'lucide-react';
+import { ShoppingCart, Check, X, Clock, FileText, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,7 @@ export default function MaterialRequestsPage() {
   const [loading, setLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
-  const [refresh, setRefresh] = React.useState(0);
+  const [refreshKey, setRefreshKey] = React.useState(0);
   const limit = 10;
 
   React.useEffect(() => {
@@ -40,7 +40,19 @@ export default function MaterialRequestsPage() {
       }
     }
     loadRequests();
-  }, [page, refresh]);
+  }, [page, refreshKey]);
+
+  const reviewRequest = async (requestId: number, type: 'pm' | 'finance', approved: boolean) => {
+    try {
+      await apiFetch(`/api/v1/procurement/requests/${requestId}/${type}-review`, {
+        method: 'PATCH',
+        body: JSON.stringify({ approved, reason: approved ? undefined : 'Rejected from SiteSync review' }),
+      });
+      setRefreshKey((value) => value + 1);
+    } catch (error: any) {
+      console.error('Failed to review material request', error);
+    }
+  };
 
   const filtered = requests.filter((mr) => {
     if (statusFilter === 'all') return true;
@@ -59,7 +71,7 @@ export default function MaterialRequestsPage() {
           description="Two-step approval workflow: PM approves operationally, then Finance approves financially"
         />
         <div className="mt-4 sm:mt-0">
-          <MaterialRequestDialog onSuccess={() => { setPage(1); setRefresh(r => r + 1); }} />
+          <MaterialRequestDialog onSuccess={() => { setPage(1); setRefreshKey(r => r + 1); }} />
         </div>
       </div>
 
@@ -119,7 +131,7 @@ export default function MaterialRequestsPage() {
                   <CardHeader>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <CardTitle className="text-lg">{req.material_name}</CardTitle>
                           <Badge variant={
                             req.priority === 'urgent' ? 'destructive' :
@@ -128,6 +140,11 @@ export default function MaterialRequestsPage() {
                           } className="text-[10px] uppercase font-bold">
                             {req.priority || 'normal'} priority
                           </Badge>
+                          {req.justification && (req.justification.toLowerCase().includes('voice') || req.justification.toLowerCase().includes('ivr')) && (
+                            <Badge className="bg-[#FFEAA7] text-black border-2 border-black font-bold text-[10px] flex items-center gap-1 shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-[#FFEAA7]">
+                              <Phone className="h-3 w-3" /> Voice IVR
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground font-medium mt-1">
                           {req.quantity} {req.unit} • {req.site_name} • Requested by <span className="font-bold text-foreground">{req.requested_by_name}</span> on {formatDate(req.created_at)}
@@ -223,14 +240,14 @@ export default function MaterialRequestsPage() {
                     <div className="flex flex-wrap gap-2">
                       {req.pm_status === 'pending' && (
                         <>
-                          <Button size="sm" className="gap-1"><Check className="h-3 w-3" /> Approve (PM)</Button>
-                          <Button size="sm" variant="destructive" className="gap-1"><X className="h-3 w-3" /> Reject</Button>
+                          <Button size="sm" className="gap-1" onClick={() => reviewRequest(req.id, 'pm', true)}><Check className="h-3 w-3" /> Approve (PM)</Button>
+                          <Button size="sm" variant="destructive" className="gap-1" onClick={() => reviewRequest(req.id, 'pm', false)}><X className="h-3 w-3" /> Reject</Button>
                         </>
                       )}
                       {req.pm_status === 'approved' && req.finance_status === 'pending' && (
                         <>
-                          <Button size="sm" className="gap-1"><Check className="h-3 w-3" /> Approve PO (Finance)</Button>
-                          <Button size="sm" variant="destructive" className="gap-1"><X className="h-3 w-3" /> Reject</Button>
+                          <Button size="sm" className="gap-1" onClick={() => reviewRequest(req.id, 'finance', true)}><Check className="h-3 w-3" /> Approve (Finance)</Button>
+                          <Button size="sm" variant="destructive" className="gap-1" onClick={() => reviewRequest(req.id, 'finance', false)}><X className="h-3 w-3" /> Reject</Button>
                         </>
                       )}
                       {req.pm_status === 'approved' && req.finance_status === 'not_applicable' && (

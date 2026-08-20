@@ -76,11 +76,39 @@ create table projects (
   budget_allocated numeric not null default 0,
   start_date date,
   end_date date,
-  status text not null default 'planning' check (status in ('planning', 'in_progress', 'on_hold', 'completed')),
+  status text not null default 'planning' check (status in ('planning', 'in_progress', 'on_hold', 'completed', 'archived')),
   progress_percent numeric not null default 0,
   created_by bigint references users(id),
   created_at timestamptz default now()
 );
+
+alter table projects
+  add constraint projects_budget_nonnegative check (budget_allocated >= 0),
+  add constraint projects_progress_range check (progress_percent >= 0 and progress_percent <= 100);
+
+create or replace function validate_project_pm()
+returns trigger
+language plpgsql
+as $$
+declare
+  project_company_id bigint;
+  pm_company_id bigint;
+  pm_role text;
+  pm_active boolean;
+begin
+  select company_id into project_company_id from sites where id = new.site_id;
+  select company_id, role, is_active into pm_company_id, pm_role, pm_active from users where id = new.pm_id;
+  if project_company_id is null or pm_company_id is null or project_company_id <> pm_company_id or pm_role <> 'pm' or not pm_active then
+    raise exception 'Project PM must be an active PM in the project site company';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists projects_validate_pm on projects;
+create trigger projects_validate_pm
+before insert or update of site_id, pm_id on projects
+for each row execute function validate_project_pm();
 
 comment on table projects is
   'budget_allocated is the source of truth for a project budget — set by
@@ -93,6 +121,8 @@ create table tasks (
   name text not null,
   description text,
   status text not null default 'not_started' check (status in ('not_started', 'in_progress', 'delayed', 'completed')),
+  priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'critical')),
+  progress_percent numeric not null default 0 check (progress_percent >= 0 and progress_percent <= 100),
   start_date date,
   end_date date,
   depends_on_task_id bigint references tasks(id),
@@ -318,7 +348,7 @@ create table alerts (
   description text,
   source_table text,
   source_id bigint,
-  status text not null default 'open' check (status in ('open', 'approved', 'dismissed', 'snoozed')),
+  status text not null default 'open' check (status in ('open', 'approved', 'resolved', 'dismissed', 'snoozed')),
   resolved_by bigint references users(id),
   resolved_at timestamptz,
   created_at timestamptz default now()

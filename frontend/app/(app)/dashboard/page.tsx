@@ -18,22 +18,37 @@ export default function DashboardPage() {
   const { user, role } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadDashboard() {
+  const loadDashboard = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const result = await apiFetch<any>('/api/v1/dashboard/summary');
         setData(result);
-      } catch (error) {
-        console.error('Failed to load dashboard', error);
+      } catch (loadError: any) {
+        console.error('Failed to load dashboard', loadError);
+        setError(loadError?.message || 'Unable to load dashboard data');
       } finally {
         setLoading(false);
       }
-    }
+  };
+
+  useEffect(() => {
     loadDashboard();
   }, []);
 
-  if (!user || loading || !data) return <div className="p-8">Loading dashboard...</div>;
+  if (!user || loading) return <div className="p-8">Loading dashboard...</div>;
+
+  if (error || !data) {
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-8 text-center">
+        <p className="font-bold">Dashboard data could not be loaded.</p>
+        <p className="text-sm text-muted-foreground">{error || 'The dashboard returned no data.'}</p>
+        <Button variant="outline" onClick={loadDashboard}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div>

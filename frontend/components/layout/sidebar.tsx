@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Building2, FolderKanban, Package, Wrench,
   ShoppingCart, Wallet, AlertTriangle, Users, FileText, Map,
-  Settings, HardHat, X, Bot, Activity
+  Settings, HardHat, X, Bot, Activity, Phone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
@@ -21,7 +21,9 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'pm', 'contractor', 'finance'] },
   { label: 'Sites', href: '/sites', icon: Building2, roles: ['admin', 'pm', 'contractor', 'finance'] },
   { label: 'Projects', href: '/projects', icon: FolderKanban, roles: ['admin', 'pm', 'contractor', 'finance'] },
+  { label: 'Voice IVR', href: '/ivr', icon: Phone, roles: ['admin', 'pm', 'contractor', 'finance'] },
   { label: 'Live AI Activity', href: '/live-activity', icon: Activity, roles: ['admin', 'pm'] },
+
   { label: 'Inventory', href: '/inventory', icon: Package, roles: ['admin', 'pm'] },
   { label: 'Equipment', href: '/equipment', icon: Wrench, roles: ['admin', 'pm'] },
   { label: 'Material Requests', href: '/procurement/requests', icon: ShoppingCart, roles: ['admin', 'pm', 'contractor'] },

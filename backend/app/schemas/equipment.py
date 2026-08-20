@@ -11,3 +11,12 @@ class EquipmentSchema(BaseModel):
     task_name: Optional[str]
     hours_used: float
     status: str
+
+class EquipmentStatusSchema(BaseModel):
+    status: str
+
+class EquipmentLogSchema(BaseModel):
+    hours: float
+
+class EquipmentAllocationSchema(BaseModel):
+    task_id: Optional[int] = None

@@ -52,6 +52,42 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const handleReject = async (id: number) => {
+    try {
+      await apiFetch(`/api/v1/finance/purchase-orders/${id}/reject`, { method: 'PATCH' });
+      toast.success('Purchase order rejected');
+      loadData(currentPage);
+    } catch (error) {
+      toast.error('Failed to reject purchase order');
+    }
+  };
+
+  const handleDelivery = async (po: any) => {
+    try {
+      await apiFetch(`/api/v1/finance/purchase-orders/${po.id}/delivery`, {
+        method: 'POST',
+        body: JSON.stringify({ quantity: po.quantity }),
+      });
+      toast.success('Delivery confirmed');
+      loadData(currentPage);
+    } catch (error) {
+      toast.error('Failed to confirm delivery');
+    }
+  };
+
+  const handleSchedulePayment = async (po: any) => {
+    try {
+      await apiFetch('/api/v1/finance/payments', {
+        method: 'POST',
+        body: JSON.stringify({ po_id: po.id, amount: po.amount }),
+      });
+      toast.success('Payment scheduled');
+      loadData(currentPage);
+    } catch (error) {
+      toast.error('Failed to schedule payment');
+    }
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -111,14 +147,14 @@ export default function PurchaseOrdersPage() {
                               <Button size="sm" className="gap-1 h-7 px-2" onClick={() => handleApprove(po.id)}>
                                 <Check className="h-3 w-3" /> Approve
                               </Button>
-                              <Button size="sm" variant="destructive" className="gap-1 h-7 px-2"><X className="h-3 w-3" /></Button>
+                              <Button size="sm" variant="destructive" className="gap-1 h-7 px-2" onClick={() => handleReject(po.id)}><X className="h-3 w-3" /></Button>
                             </>
                           )}
                           {po.status === 'approved' && (
-                            <Button size="sm" variant="outline" className="gap-1 h-7 px-2"><Package className="h-3 w-3" /> Mark Delivered</Button>
+                            <Button size="sm" variant="outline" className="gap-1 h-7 px-2" onClick={() => handleDelivery(po)}><Package className="h-3 w-3" /> Mark Delivered</Button>
                           )}
                           {po.status === 'delivered' && poPayments.length === 0 && (
-                            <Button size="sm" className="gap-1 h-7 px-2"><FileText className="h-3 w-3" /> Release Payment</Button>
+                            <Button size="sm" className="gap-1 h-7 px-2" onClick={() => handleSchedulePayment(po)}><FileText className="h-3 w-3" /> Schedule Payment</Button>
                           )}
                           {po.status === 'delivered' && poPayments.length > 0 && poPayments[0].status === 'released' && (
                             <Badge variant="success" className="brutal-badge text-[10px]">PAID</Badge>

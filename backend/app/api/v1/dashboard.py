@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, select, case
 from app.db.session import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
-from app.models.site import Site
+from app.models.site import Site, SiteAssignment
 from app.models.alert import Alert
 from app.models.procurement import MaterialRequest, PurchaseOrder
 from app.models.finance import Payment, Expense
-from app.models.inventory import Inventory
+from app.models.inventory import Inventory, Material
 from app.models.equipment import Equipment
 from app.models.project import Project
 from app.schemas.dashboard import DashboardSummary, AlertSchema, PendingRequestSchema, PendingPOSchema, EquipmentStatusSchema
@@ -17,19 +17,31 @@ router = APIRouter()
 
 @router.get("/summary", response_model=DashboardSummary)
 async def get_dashboard_summary(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # This is a simplified version. In a real app, we would scope this to the user's company and site assignments.
     company_id = current_user.company_id
 
+    site_query = db.query(Site.id).filter(Site.company_id == company_id)
+    if current_user.role in ("pm", "contractor"):
+        site_query = site_query.join(SiteAssignment, SiteAssignment.site_id == Site.id).filter(SiteAssignment.user_id == current_user.id)
+    site_ids = select(site_query.subquery().c.id)
+
     # Sites
-    total_sites = db.query(Site).filter(Site.company_id == company_id).count()
-    active_sites = db.query(Site).filter(Site.company_id == company_id, Site.status == 'active').count()
+    site_counts = db.query(
+        func.count(Site.id),
+        func.coalesce(func.sum(case((Site.status == 'active', 1), else_=0)), 0),
+    ).filter(Site.id.in_(site_ids)).one()
+    total_sites = int(site_counts[0] or 0)
+    active_sites = int(site_counts[1] or 0)
 
     # Alerts (joining with Site to get site_name)
-    alerts = db.query(Alert, Site.name.label('site_name')).join(Site).filter(Site.company_id == company_id, Alert.status == 'open').all()
-    open_alerts = len(alerts)
-    critical_alerts = sum(1 for a, _ in alerts if a.severity == 'critical')
+    alerts_query = db.query(Alert, Site.name.label('site_name')).join(Site).filter(Site.id.in_(site_ids), Alert.status == 'open')
+    alert_counts = db.query(
+        func.count(Alert.id),
+        func.coalesce(func.sum(case((Alert.severity == 'critical', 1), else_=0)), 0),
+    ).join(Site).filter(Site.id.in_(site_ids), Alert.status == 'open').one()
+    open_alerts = int(alert_counts[0] or 0)
+    critical_alerts = int(alert_counts[1] or 0)
     recent_alerts = []
-    for a, s_name in sorted(alerts, key=lambda x: x[0].created_at, reverse=True)[:5]:
+    for a, s_name in alerts_query.order_by(Alert.created_at.desc()).limit(5).all():
         recent_alerts.append(AlertSchema(
             id=a.id, site_id=a.site_id, site_name=s_name, project_id=a.project_id,
             type=a.type, severity=a.severity, title=a.title, description=a.description,
@@ -42,8 +54,8 @@ async def get_dashboard_summary(db: Session = Depends(get_db), current_user: Use
                        .join(Site, MaterialRequest.site_id == Site.id)\
                        .join(User, MaterialRequest.requested_by == User.id)\
                        .filter(Site.company_id == company_id, MaterialRequest.pm_status == 'pending')
-    reqs = requests_query.all()
-    pending_requests = len(reqs)
+    pending_requests = requests_query.count()
+    reqs = requests_query.order_by(MaterialRequest.created_at.desc()).limit(4).all()
     pending_requests_list = []
     for r, s_name, u_name in reqs[:4]:
         # Need to join Material to get material name properly, assuming material_id for now
@@ -52,10 +64,15 @@ async def get_dashboard_summary(db: Session = Depends(get_db), current_user: Use
             site_name=s_name, pm_status=r.pm_status, finance_status=r.finance_status, created_at=r.created_at
         ))
 
-    pos_query = db.query(PurchaseOrder).filter(PurchaseOrder.status == 'pending_finance') # Need company filter via request/site
-    pos = pos_query.all()
-    pending_pos = len(pos)
-    pending_po_amount = sum(float(p.amount) for p in pos)
+    pos_query = db.query(PurchaseOrder).join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id).filter(MaterialRequest.site_id.in_(site_ids), PurchaseOrder.status == 'pending_finance')
+    if current_user.role in ("finance", "admin"):
+        pending_pos = pos_query.count()
+        pending_po_amount = float(pos_query.with_entities(func.coalesce(func.sum(PurchaseOrder.amount), 0)).scalar() or 0)
+        pos = pos_query.order_by(PurchaseOrder.order_date.desc()).limit(3).all()
+    else:
+        pending_pos = 0
+        pending_po_amount = 0
+        pos = []
     pending_pos_list = []
     for p in pos[:3]:
         pending_pos_list.append(PendingPOSchema(
@@ -63,26 +80,46 @@ async def get_dashboard_summary(db: Session = Depends(get_db), current_user: Use
         ))
 
     # Inventory
-    low_stock = db.query(Inventory).filter(Inventory.quantity <= Inventory.reorder_level).count()
+    low_stock = 0
+    if current_user.role in ("pm", "admin"):
+        low_stock = db.query(func.count(Inventory.id)).filter(Inventory.site_id.in_(site_ids), Inventory.quantity <= Inventory.reorder_level).scalar() or 0
 
     # Users
-    total_users = db.query(User).filter(User.company_id == company_id).count()
-    active_users = db.query(User).filter(User.company_id == company_id, User.is_active == True).count()
+    if current_user.role == "admin":
+        user_counts = db.query(
+            func.count(User.id),
+            func.coalesce(func.sum(case((User.is_active == True, 1), else_=0)), 0),
+        ).filter(User.company_id == company_id).one()
+        total_users = int(user_counts[0] or 0)
+        active_users = int(user_counts[1] or 0)
+    else:
+        total_users = 0
+        active_users = 0
 
     # Finance
-    projects = db.query(Project).filter(Project.company_id == company_id).all()
-    total_budget = sum(float(p.budget_allocated) for p in projects)
+    total_budget = float(db.query(func.coalesce(func.sum(Project.budget_allocated), 0)).filter(Project.site_id.in_(site_ids)).scalar() or 0)
     
     # Total spend from Expenses
-    expenses = db.query(Expense).join(Site).filter(Site.company_id == company_id).all()
-    total_spend = sum(float(e.amount) for e in expenses)
+    total_spend = float(db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(Expense.site_id.in_(site_ids)).scalar() or 0)
 
-    scheduled_payments = sum(float(p.amount) for p in db.query(Payment).filter(Payment.status == 'scheduled').all())
+    scheduled_payments = 0
+    if current_user.role in ("finance", "admin", "pm"):
+        scheduled_payments = float(db.query(func.coalesce(func.sum(Payment.amount), 0)).join(PurchaseOrder, Payment.po_id == PurchaseOrder.id).join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id).filter(MaterialRequest.site_id.in_(site_ids), Payment.status == 'scheduled').scalar() or 0)
 
     # Equipment
-    equip_active = db.query(Equipment).join(Site).filter(Site.company_id == company_id, Equipment.status == 'active').count()
-    equip_idle = db.query(Equipment).join(Site).filter(Site.company_id == company_id, Equipment.status == 'idle').count()
-    equip_maint = db.query(Equipment).join(Site).filter(Site.company_id == company_id, Equipment.status == 'maintenance').count()
+    if current_user.role in ("pm", "admin"):
+        equipment_counts = db.query(
+            func.coalesce(func.sum(case((Equipment.status == 'active', 1), else_=0)), 0),
+            func.coalesce(func.sum(case((Equipment.status == 'idle', 1), else_=0)), 0),
+            func.coalesce(func.sum(case((Equipment.status == 'maintenance', 1), else_=0)), 0),
+        ).filter(Equipment.site_id.in_(site_ids)).one()
+        equip_active = int(equipment_counts[0] or 0)
+        equip_idle = int(equipment_counts[1] or 0)
+        equip_maint = int(equipment_counts[2] or 0)
+    else:
+        equip_active = 0
+        equip_idle = 0
+        equip_maint = 0
 
     return DashboardSummary(
         active_sites=active_sites,

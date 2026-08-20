@@ -16,7 +16,21 @@ export default function VendorQuotesPage() {
   const [loading, setLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
+  const [refreshKey, setRefreshKey] = React.useState(0);
   const limit = 10;
+
+  const selectAndCreatePo = async (requestId: number, quoteId: number) => {
+    try {
+      await apiFetch(`/api/v1/procurement/quotes/${quoteId}/select`, { method: 'PATCH' });
+      await apiFetch('/api/v1/procurement/purchase-orders', {
+        method: 'POST',
+        body: JSON.stringify({ request_id: requestId, quote_id: quoteId }),
+      });
+      setRefreshKey((value) => value + 1);
+    } catch (error) {
+      console.error('Failed to select quote and create purchase order', error);
+    }
+  };
 
   React.useEffect(() => {
     async function loadRequests() {
@@ -33,7 +47,7 @@ export default function VendorQuotesPage() {
       }
     }
     loadRequests();
-  }, [page]);
+  }, [page, refreshKey]);
 
   return (
     <div>
@@ -90,8 +104,8 @@ export default function VendorQuotesPage() {
                                 </div>
                               </div>
                             )}
-                            {!q.is_selected && !req.po_status && (
-                              <Button size="sm" className="w-full mt-2 gap-1">
+                            {!q.is_selected && !req.po_status && req.finance_status === 'approved' && (
+                              <Button size="sm" className="w-full mt-2 gap-1" onClick={() => selectAndCreatePo(req.id, q.id)}>
                                 <Check className="h-3 w-3" /> Select & Create PO
                               </Button>
                             )}

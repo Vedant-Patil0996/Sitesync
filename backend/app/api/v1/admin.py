@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.session import get_db
-from app.core.deps import get_current_user, require_role
+from app.core.deps import get_current_user, require_role, audit
 from app.models.user import User
 from app.models.audit import AuditLog
 from app.schemas.common import PaginatedResponse
@@ -48,26 +48,34 @@ async def invite_user(db: Session = Depends(get_db), current_user: User = Depend
 
 @router.patch("/users/{user_id}/role")
 async def update_user_role(user_id: int, role: str, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user:
-        user.role = role
-        db.commit()
+    if role not in ("admin", "pm", "contractor", "finance"):
+        raise HTTPException(status_code=400, detail="Invalid role")
+    user = db.query(User).filter(User.id == user_id, User.company_id == current_user.company_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.role = role
+    audit(db, current_user, "user.role_updated", "user", user.id, {"role": role})
+    db.commit()
     return {"status": "success"}
 
 @router.patch("/users/{user_id}/deactivate")
 async def deactivate_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user:
-        user.is_active = False
-        db.commit()
+    user = db.query(User).filter(User.id == user_id, User.company_id == current_user.company_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    audit(db, current_user, "user.deactivated", "user", user.id)
+    db.commit()
     return {"status": "success"}
 
 @router.patch("/users/{user_id}/activate")
 async def activate_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user:
-        user.is_active = True
-        db.commit()
+    user = db.query(User).filter(User.id == user_id, User.company_id == current_user.company_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    audit(db, current_user, "user.activated", "user", user.id)
+    db.commit()
     return {"status": "success"}
 
 @router.get("/audit-log", response_model=PaginatedResponse[AuditLogSchema])
@@ -79,6 +87,7 @@ async def get_audit_log(
 ):
     query = db.query(AuditLog, User)\
         .outerjoin(User, AuditLog.user_id == User.id)\
+        .filter((AuditLog.user_id == None) | (User.company_id == current_user.company_id))\
         .order_by(AuditLog.created_at.desc())
         
     total = query.count()
