@@ -27,7 +27,7 @@ def run_worker_agent(worker_name: str, alert_context: dict, max_iterations: int 
     
     for i in range(max_iterations):
         response = groq_client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="openai/gpt-oss-20b",
             messages=messages,
             tools=tools,
             tool_choice="auto",

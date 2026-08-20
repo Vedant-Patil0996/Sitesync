@@ -53,9 +53,13 @@ def main():
     
     print("\nFinal Agent Findings & Recommendations:")
     if 'stock' in result['results']:
-        print(result['results']['stock'])
+        with open('agent_output.md', 'w', encoding='utf-8') as f:
+            f.write(result['results']['stock'])
+        print("Wrote output to agent_output.md")
     else:
-        print(json.dumps(result, indent=2))
+        with open('agent_output.md', 'w', encoding='utf-8') as f:
+            json.dump(result, f, indent=2)
+        print("Wrote output to agent_output.md")
 
 if __name__ == '__main__':
     main()

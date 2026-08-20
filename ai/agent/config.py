@@ -22,10 +22,10 @@ rag_tool = {
             "type": "object",
             "properties": {
                 "query": {"type": "string"},
-                "company_id": {"type": "string", "description": "Optional, filter by company"},
-                "site_id": {"type": "string"},
-                "source_table": {"type": "string", "description": "inventory_transactions, material_requests, purchase_orders, expenses"},
-                "vendor_id": {"type": "string", "description": "Optional, filter to a specific vendor's procurement history"}
+                "company_id": {"type": ["string", "null"], "description": "Optional, filter by company"},
+                "site_id": {"type": ["string", "null"]},
+                "source_table": {"type": ["string", "null"], "description": "inventory_transactions, material_requests, purchase_orders, expenses"},
+                "vendor_id": {"type": ["string", "null"], "description": "Optional, filter to a specific vendor's procurement history"}
             },
             "required": ["query"]
         }
