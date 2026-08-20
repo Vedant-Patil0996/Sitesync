@@ -6,7 +6,7 @@ from app.core.deps import get_current_user, require_role
 from app.models.user import User
 from app.models.site import Site
 from app.models.inventory import Inventory, Material, InventoryTransaction
-from app.schemas.inventory import InventorySchema, TransactionCreateSchema
+from app.schemas.inventory import InventorySchema, TransactionCreateSchema, MaterialSchema
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter()
@@ -48,6 +48,18 @@ async def get_inventory(
         pages=(total + limit - 1) // limit
     )
 
+@router.get("/materials", response_model=list[MaterialSchema])
+async def get_materials(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    materials = db.query(Material).filter(Material.company_id == current_user.company_id).all()
+    return [
+        MaterialSchema(
+            id=m.id,
+            name=m.name,
+            unit=m.unit,
+            default_reorder_level=float(m.default_reorder_level),
+            barcode_code=m.barcode_code
+        ) for m in materials
+    ]
 @router.get("/by-site/{site_id}")
 async def get_site_inventory(site_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return []

@@ -66,6 +66,21 @@ async def get_sites(
         pages=(total + limit - 1) // limit
     )
 
+@router.get("/my-site", response_model=SiteDetailSchema)
+async def get_my_site(db: Session = Depends(get_db), current_user: User = Depends(require_role("contractor"))):
+    assignment = db.query(SiteAssignment).filter(SiteAssignment.user_id == current_user.id).first()
+    
+    if assignment:
+        site_id = assignment.site_id
+    else:
+        # Fallback to the first active site of the user's company if no explicit assignment exists
+        first_site = db.query(Site).filter(Site.company_id == current_user.company_id).first()
+        if not first_site:
+            raise HTTPException(status_code=404, detail="No site found for your company")
+        site_id = first_site.id
+        
+    return await get_site(site_id=site_id, db=db, current_user=current_user)
+
 @router.get("/{site_id}", response_model=SiteDetailSchema)
 async def get_site(site_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     site = db.query(Site).filter(Site.id == site_id, Site.company_id == current_user.company_id).first()

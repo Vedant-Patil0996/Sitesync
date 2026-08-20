@@ -13,6 +13,7 @@ import {
 import { apiFetch } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/types';
 import { Pagination } from '@/components/shared/pagination';
+import { MaterialRequestDialog } from '@/components/procurement/material-request-dialog';
 
 export default function MaterialRequestsPage() {
   const [statusFilter, setStatusFilter] = React.useState('all');
@@ -21,6 +22,7 @@ export default function MaterialRequestsPage() {
   const [loading, setLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
+  const [refresh, setRefresh] = React.useState(0);
   const limit = 10;
 
   React.useEffect(() => {
@@ -38,7 +40,7 @@ export default function MaterialRequestsPage() {
       }
     }
     loadRequests();
-  }, [page]);
+  }, [page, refresh]);
 
   const filtered = requests.filter((mr) => {
     if (statusFilter === 'all') return true;
@@ -51,10 +53,15 @@ export default function MaterialRequestsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Material Requests"
-        description="Two-step approval workflow: PM approves operationally, then Finance approves financially"
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+        <PageHeader
+          title="Material Requests"
+          description="Two-step approval workflow: PM approves operationally, then Finance approves financially"
+        />
+        <div className="mt-4 sm:mt-0">
+          <MaterialRequestDialog onSuccess={() => { setPage(1); setRefresh(r => r + 1); }} />
+        </div>
+      </div>
 
       {/* Workflow steps */}
       <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold">
@@ -112,24 +119,70 @@ export default function MaterialRequestsPage() {
                   <CardHeader>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <CardTitle className="text-lg">{req.material_name}</CardTitle>
-                        <p className="text-sm text-muted-foreground font-medium">
-                          {req.quantity} {req.unit} - {req.site_name} - Requested by {req.requested_by_name} on {formatDate(req.created_at)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-[10px] font-semibold text-muted-foreground">PM</span>
-                          <StatusBadge status={req.pm_status} />
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{req.material_name}</CardTitle>
+                          <Badge variant={
+                            req.priority === 'urgent' ? 'destructive' :
+                            req.priority === 'high' ? 'secondary' :
+                            'outline'
+                          } className="text-[10px] uppercase font-bold">
+                            {req.priority || 'normal'} priority
+                          </Badge>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-[10px] font-semibold text-muted-foreground">Finance</span>
-                          <StatusBadge status={req.finance_status} />
+                        <p className="text-sm text-muted-foreground font-medium mt-1">
+                          {req.quantity} {req.unit} • {req.site_name} • Requested by <span className="font-bold text-foreground">{req.requested_by_name}</span> on {formatDate(req.created_at)}
+                        </p>
+                        {req.required_date && (
+                          <p className="text-xs text-primary font-bold mt-0.5">
+                            Target Delivery: {formatDate(req.required_date)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {req.total_estimated_cost && (
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Est. Cost</span>
+                            <span className="font-display text-xl font-extrabold text-primary">
+                              {formatCurrency(req.total_estimated_cost)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] font-semibold text-muted-foreground">PM</span>
+                            <StatusBadge status={req.pm_status} />
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] font-semibold text-muted-foreground">Finance</span>
+                            <StatusBadge status={req.finance_status} />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
+                    {/* Justification & Attachments */}
+                    {(req.justification || req.attachment_url) && (
+                      <div className="mb-4 p-3 border-2 border-border bg-secondary/40 text-xs space-y-2">
+                        {req.justification && (
+                          <p><span className="font-bold">Justification:</span> {req.justification}</p>
+                        )}
+                        {req.attachment_url && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold">Attachment:</span>
+                            <a
+                              href={req.attachment_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary font-bold hover:underline underline-offset-2 flex items-center gap-1"
+                            >
+                              View Spec Document / Image ↗
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Timeline */}
                     <div className="mb-4 flex items-center gap-2 text-xs">
                       <div className={`flex items-center gap-1 border-2 border-border px-2 py-1 ${req.pm_status === 'approved' ? 'bg-green-100 dark:bg-green-900' : req.pm_status === 'rejected' ? 'bg-red-100 dark:bg-red-900' : 'bg-soft-sand/40 dark:bg-soft-sand/10'}`}>

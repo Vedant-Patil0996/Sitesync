@@ -8,7 +8,7 @@ from app.models.site import Site
 from app.models.inventory import Material
 from app.models.vendor import Vendor
 from app.models.procurement import MaterialRequest, VendorQuote, PurchaseOrder
-from app.schemas.procurement import MaterialRequestSchema, VendorQuoteSchema
+from app.schemas.procurement import MaterialRequestSchema, VendorQuoteSchema, MaterialRequestCreateSchema
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter()
@@ -68,10 +68,18 @@ async def get_requests(
             site_name=site.name,
             requested_by_name=user.name,
             created_at=req.created_at,
+            priority=req.priority or "normal",
+            required_date=req.required_date,
+            estimated_unit_cost=float(req.estimated_unit_cost) if req.estimated_unit_cost is not None else None,
+            total_estimated_cost=float(req.total_estimated_cost) if req.total_estimated_cost is not None else None,
+            attachment_url=req.attachment_url,
+            justification=req.justification,
             pm_status=req.pm_status,
             pm_reviewed_by_name=pm_reviewer_name,
+            pm_notes=req.pm_notes,
             finance_status=req.finance_status,
             finance_reviewed_by_name=fin_reviewer_name,
+            finance_notes=req.finance_notes,
             quotes=quotes,
             po_status=po_status
         ))
@@ -84,9 +92,76 @@ async def get_requests(
         pages=(total + limit - 1) // limit
     )
 
-@router.post("/requests")
-async def create_request(db: Session = Depends(get_db), current_user: User = Depends(require_role("pm", "contractor"))):
-    pass
+@router.post("/requests", response_model=MaterialRequestSchema)
+async def create_request(
+    request: MaterialRequestCreateSchema,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(require_role("pm", "contractor"))
+):
+    from datetime import datetime
+    # Verify site exists and belongs to company
+    site = db.query(Site).filter(Site.id == request.site_id, Site.company_id == current_user.company_id).first()
+    if not site:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Site not found")
+        
+    # Verify material exists and belongs to company
+    material = db.query(Material).filter(Material.id == request.material_id, Material.company_id == current_user.company_id).first()
+    if not material:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Material not found")
+
+    unit_cost = request.estimated_unit_cost
+    total_cost = (float(request.quantity) * float(unit_cost)) if unit_cost is not None else None
+
+    req_date = None
+    if request.required_date:
+        try:
+            req_date = datetime.strptime(request.required_date, "%Y-%m-%d").date()
+        except Exception:
+            pass
+
+    new_request = MaterialRequest(
+        site_id=request.site_id,
+        material_id=request.material_id,
+        quantity=request.quantity,
+        requested_by=current_user.id,
+        priority=request.priority or "normal",
+        required_date=req_date,
+        estimated_unit_cost=unit_cost,
+        total_estimated_cost=total_cost,
+        attachment_url=request.attachment_url,
+        justification=request.justification,
+        pm_status="pending",
+        finance_status="not_applicable"
+    )
+    db.add(new_request)
+    db.commit()
+    db.refresh(new_request)
+    
+    return MaterialRequestSchema(
+        id=new_request.id,
+        material_name=material.name,
+        quantity=float(new_request.quantity),
+        unit=material.unit,
+        site_name=site.name,
+        requested_by_name=current_user.name,
+        created_at=new_request.created_at,
+        priority=new_request.priority,
+        required_date=new_request.required_date,
+        estimated_unit_cost=float(new_request.estimated_unit_cost) if new_request.estimated_unit_cost is not None else None,
+        total_estimated_cost=float(new_request.total_estimated_cost) if new_request.total_estimated_cost is not None else None,
+        attachment_url=new_request.attachment_url,
+        justification=new_request.justification,
+        pm_status=new_request.pm_status,
+        pm_reviewed_by_name=None,
+        pm_notes=None,
+        finance_status=new_request.finance_status,
+        finance_reviewed_by_name=None,
+        finance_notes=None,
+        quotes=[],
+        po_status=None
+    )
 
 @router.patch("/requests/{request_id}/pm-review")
 async def pm_review_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm"))):
