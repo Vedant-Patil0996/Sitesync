@@ -8,6 +8,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.alert import Alert, Notification
 from app.models.user import User
+from app.services.notifications.dispatcher import dispatcher
 
 
 # Role → which severity alerts they receive
@@ -113,6 +114,8 @@ def create_alert_and_notify(
     allowed_severities = ROLE_NOTIFICATION_RULES
     notif_count = 0
 
+    notifications_created = []
+
     for user in users:
         role_rules = allowed_severities.get(user.role, [])
         if severity in role_rules:
@@ -122,11 +125,17 @@ def create_alert_and_notify(
                 related_entity_type="ai_run",
                 title=f"🤖 AI Alert [{severity.upper()}]: {title[:80]}",
                 message=summary[:300],
-                is_read=False,
+                status="created",
             )
             db.add(notif)
+            notifications_created.append((user, notif))
             notif_count += 1
 
     db.commit()
+    
+    # After commit, dispatch them to channels
+    for user, notif in notifications_created:
+        dispatcher.dispatch(db, user, notif, alert)
+
     print(f"[NotificationService] Created alert #{alert.id} ({severity}) → {notif_count} notifications sent", flush=True)
     return alert

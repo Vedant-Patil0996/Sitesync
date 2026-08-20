@@ -367,7 +367,10 @@ create table notifications (
   related_entity_id bigint,
   title text not null,
   message text,
-  is_read boolean not null default false,
+  status text not null default 'created', -- created, delivered, failed
+  read_at timestamptz,
+  delivered_at timestamptz,
+  failed_at timestamptz,
   created_at timestamptz default now()
 );
 
