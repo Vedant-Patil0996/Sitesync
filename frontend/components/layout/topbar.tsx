@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useAuth } from '@/providers/auth-provider';
 import { ROLE_LABELS } from '@/lib/types';
+import { LanguageSelect } from '@/components/shared/language-select';
 import { apiFetch } from '@/lib/api';
 
 interface TopbarProps {
@@ -45,6 +46,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+        <LanguageSelect />
         <ThemeToggle />
 
         <Button asChild variant="outline" size="icon" className="relative" aria-label="Notifications">
