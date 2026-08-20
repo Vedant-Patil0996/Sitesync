@@ -1,3 +1,4 @@
+from decimal import Decimal
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -79,23 +80,38 @@ async def log_transaction(
         db.add(inv)
         db.flush()
 
+    tx_qty = Decimal(str(tx.quantity))
+    tx_type_raw = tx.type.lower()
+
+    # Map transaction type to DB check constraint values ('IN', 'OUT', 'TRANSFER_IN', 'TRANSFER_OUT')
+    type_mapping = {
+        "stock_in": "IN",
+        "in": "IN",
+        "stock_out": "OUT",
+        "out": "OUT",
+        "transfer_in": "TRANSFER_IN",
+        "transfer_out": "TRANSFER_OUT"
+    }
+
+    db_tx_type = type_mapping.get(tx_type_raw)
+    if not db_tx_type:
+        raise HTTPException(status_code=400, detail=f"Invalid transaction type: {tx.type}")
+
     # Update quantity based on type
-    if tx.type in ["stock_in", "transfer_in"]:
-        inv.quantity += tx.quantity
-    elif tx.type in ["stock_out", "transfer_out"]:
-        if inv.quantity < tx.quantity:
+    if db_tx_type in ["IN", "TRANSFER_IN"]:
+        inv.quantity += tx_qty
+    elif db_tx_type in ["OUT", "TRANSFER_OUT"]:
+        if inv.quantity < tx_qty:
             raise HTTPException(status_code=400, detail="Insufficient stock")
-        inv.quantity -= tx.quantity
-    else:
-        raise HTTPException(status_code=400, detail="Invalid transaction type")
+        inv.quantity -= tx_qty
 
     # Create transaction log
     transaction = InventoryTransaction(
         site_id=tx.site_id,
         material_id=tx.material_id,
         user_id=current_user.id,
-        type=tx.type.upper(),
-        quantity=tx.quantity,
+        type=db_tx_type,
+        quantity=tx_qty,
         reference=tx.reference
     )
     db.add(transaction)

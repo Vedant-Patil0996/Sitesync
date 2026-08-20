@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,18 +12,34 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import {
-  sites, projects, inventory, equipment, alerts, contractors,
-  getBudgetVsActual, getTasksByProject,
-} from '@/lib/mock-data';
 import { formatCurrency, formatDate } from '@/lib/types';
+import { apiFetch } from '@/lib/api';
 
 export default function SiteDetailPage() {
   const params = useParams();
   const siteId = params.siteId as string;
-  const site = sites.find((s) => s.id === siteId);
+  const [siteData, setSiteData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!site) {
+  useEffect(() => {
+    async function fetchSite() {
+      try {
+        const data = await apiFetch<any>(`/api/v1/sites/${siteId}`);
+        setSiteData(data);
+      } catch (error) {
+        console.error('Failed to load site details', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSite();
+  }, [siteId]);
+
+  if (loading) {
+    return <div className="p-8">Loading site details...</div>;
+  }
+
+  if (!siteData) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
         <p className="text-lg font-bold">Site not found</p>
@@ -31,13 +48,7 @@ export default function SiteDetailPage() {
     );
   }
 
-  const siteProjects = projects.filter((p) => p.site_id === siteId);
-  const siteInventory = inventory.filter((i) => i.site_id === siteId);
-  const siteEquipment = equipment.filter((e) => e.site_id === siteId);
-  const siteAlerts = alerts.filter((a) => a.site_id === siteId);
-  const siteContractors = contractors.filter((c) => c.site_id === siteId);
-  const { budget, spent } = getBudgetVsActual(siteId);
-  const budgetPct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+  const { projects, inventory, equipment, alerts, contractors, budget, spent, budget_pct } = siteData;
 
   return (
     <div>
@@ -46,9 +57,9 @@ export default function SiteDetailPage() {
       </Link>
 
       <PageHeader
-        title={site.name}
-        description={site.location_text}
-        action={<StatusBadge status={site.status} />}
+        title={siteData.name}
+        description={siteData.location_text}
+        action={<StatusBadge status={siteData.status} />}
       />
 
       {/* Summary cards */}
@@ -59,7 +70,7 @@ export default function SiteDetailPage() {
             <FolderKanban className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{siteProjects.length}</div>
+            <div className="font-display text-2xl font-extrabold">{projects.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -68,7 +79,7 @@ export default function SiteDetailPage() {
             <Package className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{siteInventory.length}</div>
+            <div className="font-display text-2xl font-extrabold">{inventory.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -77,7 +88,7 @@ export default function SiteDetailPage() {
             <Wrench className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{siteEquipment.length}</div>
+            <div className="font-display text-2xl font-extrabold">{equipment.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -86,7 +97,7 @@ export default function SiteDetailPage() {
             <AlertTriangle className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{siteAlerts.filter((a) => a.status === 'open').length}</div>
+            <div className="font-display text-2xl font-extrabold">{alerts.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -103,9 +114,9 @@ export default function SiteDetailPage() {
               <span>Budget: {formatCurrency(budget)}</span>
             </div>
             <div className="h-6 border-2 border-border bg-secondary">
-              <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+              <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(budget_pct, 100)}%` }} />
             </div>
-            <p className="text-center font-display text-2xl font-extrabold">{budgetPct}% used</p>
+            <p className="text-center font-display text-2xl font-extrabold">{budget_pct}% used</p>
           </CardContent>
         </Card>
 
@@ -120,8 +131,8 @@ export default function SiteDetailPage() {
                 <div className="flex h-12 w-12 items-center justify-center border-2 border-border bg-primary shadow-brutal">
                   <Building2 className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <p className="text-sm font-bold">{site.location_text}</p>
-                <p className="text-xs text-muted-foreground font-medium">{site.latitude.toFixed(4)}, {site.longitude.toFixed(4)}</p>
+                <p className="text-sm font-bold">{siteData.location_text}</p>
+                <p className="text-xs text-muted-foreground font-medium">{siteData.latitude?.toFixed(4) || 'N/A'}, {siteData.longitude?.toFixed(4) || 'N/A'}</p>
               </div>
               <div className="absolute inset-0" style={{
                 backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, hsl(var(--border) / 0.1) 20px, hsl(var(--border) / 0.1) 21px), repeating-linear-gradient(90deg, transparent, transparent 20px, hsl(var(--border) / 0.1) 20px, hsl(var(--border) / 0.1) 21px)'
@@ -136,7 +147,7 @@ export default function SiteDetailPage() {
             <CardTitle className="flex items-center gap-2"><FolderKanban className="h-5 w-5" /> Projects</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {siteProjects.map((project) => (
+            {projects.map((project: any) => (
               <Link key={project.id} href={`/projects/${project.id}`}>
                 <div className="border-2 border-border bg-secondary px-3 py-2.5 hover:bg-accent transition-colors">
                   <div className="flex items-center justify-between">
@@ -162,8 +173,8 @@ export default function SiteDetailPage() {
             <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Inventory</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {siteInventory.map((item) => {
-              const isLow = item.current_stock <= item.reorder_level;
+            {inventory.map((item: any) => {
+              const isLow = item.quantity <= item.reorder_level;
               return (
                 <div key={item.id} className="flex items-center justify-between border-2 border-border bg-secondary px-3 py-2">
                   <div>
@@ -171,7 +182,7 @@ export default function SiteDetailPage() {
                     <p className="text-xs text-muted-foreground font-medium">Reorder at {item.reorder_level} {item.unit}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-extrabold text-sm">{item.current_stock} {item.unit}</p>
+                    <p className="font-extrabold text-sm">{item.quantity} {item.unit}</p>
                     {isLow && <Badge variant="destructive" className="brutal-badge text-[10px]">LOW</Badge>}
                   </div>
                 </div>
@@ -186,7 +197,7 @@ export default function SiteDetailPage() {
             <CardTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" /> Equipment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {siteEquipment.map((eq) => (
+            {equipment.map((eq: any) => (
               <div key={eq.id} className="flex items-center justify-between border-2 border-border bg-secondary px-3 py-2">
                 <div>
                   <p className="font-bold text-sm">{eq.name}</p>
@@ -204,7 +215,7 @@ export default function SiteDetailPage() {
             <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Contractors</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {siteContractors.map((c) => (
+            {contractors.map((c: any) => (
               <div key={c.id} className="flex items-center justify-between border-2 border-border bg-secondary px-3 py-2">
                 <div>
                   <p className="font-bold text-sm">{c.name}</p>
@@ -222,7 +233,7 @@ export default function SiteDetailPage() {
             <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Active Alerts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {siteAlerts.filter((a) => a.status === 'open').slice(0, 5).map((alert) => (
+            {alerts.slice(0, 5).map((alert: any) => (
               <div key={alert.id} className="border-2 border-border bg-secondary px-3 py-2">
                 <div className="flex items-center justify-between">
                   <p className="font-bold text-sm">{alert.title}</p>
@@ -231,7 +242,7 @@ export default function SiteDetailPage() {
                 <p className="text-xs text-muted-foreground font-medium mt-1">{alert.description}</p>
               </div>
             ))}
-            {siteAlerts.filter((a) => a.status === 'open').length === 0 && (
+            {alerts.length === 0 && (
               <p className="text-sm text-muted-foreground font-medium text-center py-2">No active alerts</p>
             )}
           </CardContent>

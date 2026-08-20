@@ -25,7 +25,7 @@ export default function AuditLogPage() {
     setLoading(true);
     try {
       const skip = (page - 1) * itemsPerPage;
-      const data = await apiFetch(`/api/v1/admin/audit-log?skip=${skip}&limit=${itemsPerPage}`);
+      const data = await apiFetch<any>(`/api/v1/admin/audit-log?skip=${skip}&limit=${itemsPerPage}`);
       setLogs(data.items);
       setTotalPages(data.pages);
       setCurrentPage(data.page);
