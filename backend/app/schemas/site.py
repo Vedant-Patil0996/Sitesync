@@ -17,6 +17,8 @@ class SiteSchema(BaseModel):
     budget: float
     spent: float
     budget_pct: int
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class SiteContractorSchema(BaseModel):
     id: int
@@ -25,8 +27,6 @@ class SiteContractorSchema(BaseModel):
     phone: Optional[str]
 
 class SiteDetailSchema(SiteSchema):
-    latitude: Optional[float]
-    longitude: Optional[float]
     location_text: Optional[str]
     projects: List[ProjectSchema]
     inventory: List[InventorySchema]
