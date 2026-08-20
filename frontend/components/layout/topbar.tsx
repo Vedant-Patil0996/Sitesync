@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useAuth } from '@/providers/auth-provider';
 import { ROLE_LABELS } from '@/lib/types';
 import { notifications } from '@/lib/mock-data';
+import { LanguageSelect } from '@/components/shared/language-select';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -28,6 +29,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+        <LanguageSelect />
         <ThemeToggle />
 
         <Button variant="outline" size="icon" className="relative" aria-label="Notifications">

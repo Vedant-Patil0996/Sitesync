@@ -6,12 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getResponse } from '@/lib/canned-responses';
 import type { ChatMessage } from '@/lib/types';
+import { Avatar } from '@/components/shared/avatar';
+import { Video, VideoOff } from 'lucide-react';
 
 export function ChatBubbleButton() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
   const [isTyping, setIsTyping] = React.useState(false);
+  const [isAvatarActive, setIsAvatarActive] = React.useState(false);
+  const [latestSpeech, setLatestSpeech] = React.useState('');
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -43,6 +47,7 @@ export function ChatBubbleButton() {
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      setLatestSpeech(response); // Trigger avatar speech
       setIsTyping(false);
     }, 800);
   };
@@ -61,9 +66,18 @@ export function ChatBubbleButton() {
                 <div className="text-xs text-primary-foreground/80 font-medium">Online</div>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-primary-foreground hover:opacity-70">
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsAvatarActive(!isAvatarActive)} 
+                className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-border transition-colors ${isAvatarActive ? 'bg-green-500 text-white' : 'bg-card text-primary hover:bg-muted'}`}
+                title="Toggle AI Avatar"
+              >
+                {isAvatarActive ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+              </button>
+              <button onClick={() => setIsOpen(false)} className="text-primary-foreground hover:opacity-70">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin">
@@ -133,6 +147,12 @@ export function ChatBubbleButton() {
           <MessageCircle className="h-6 w-6 text-primary-foreground" />
         )}
       </button>
+
+      <Avatar 
+        isActive={isAvatarActive} 
+        onClose={() => setIsAvatarActive(false)} 
+        textToSpeak={latestSpeech} 
+      />
     </>
   );
 }
