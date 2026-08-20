@@ -125,8 +125,17 @@ def get_vendor_price_trend(material_id: str, vendor_id: str) -> Dict[str, Any]:
     }
 
 def compare_vendor_quotes(request_id: str) -> List[Dict[str, Any]]:
-    resp = supabase.table('vendor_quotes').select(
-        'unit_price, delivery_days, total_price, vendors(name, rating)'
-    ).eq('request_id', request_id).order('total_price').execute()
+    # Guard: request_id must be a numeric integer (postgres bigint FK)
+    if not request_id or not str(request_id).strip().lstrip('-').isdigit():
+        return [{"error": f"No data available: 'request_id' must be a numeric material-request ID (got '{request_id}'). Query pending_requests first to get a valid ID."}]
     
-    return resp.data
+    try:
+        resp = supabase.table('vendor_quotes').select(
+            'unit_price, delivery_days, total_price, vendors(name, rating)'
+        ).eq('request_id', request_id).order('total_price').execute()
+        
+        if not resp.data:
+            return [{"result": "no_quotes_found", "request_id": request_id, "note": "No vendor quotes on file for this request ID."}]
+        return resp.data
+    except Exception as e:
+        return [{"error": str(e)}]

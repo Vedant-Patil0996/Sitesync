@@ -1,6 +1,6 @@
 # =====================================================================
 # SiteSync — Root .gitignore
-# Stack: Next.js (TypeScript) frontend | Node.js backend | Python AI
+# Stack: Next.js (TypeScript) frontend | FastAPI backend | Python AI
 # =====================================================================
 
 # ── Node.js ──────────────────────────────────────────────────────────
@@ -9,7 +9,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 .pnp
 .pnp.js
 .pnpm-store/
@@ -82,6 +81,15 @@ venv.bak/
 dmypy.json
 .pytest_cache/
 .ruff_cache/
+
+# ── AI Runtime outputs (auto-generated, not source) ───────────────────
+agent_output.md
+agent_output.txt
+agent_trace.md
+agent_trace.json
+frontend/public/agent_trace.json
+out.txt
+error.log
 
 # ── Jupyter ───────────────────────────────────────────────────────────
 .ipynb_checkpoints/
