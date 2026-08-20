@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { useRole } from '@/components/providers/role-provider';
+import { useAuth } from '@/providers/auth-provider';
 import {
   sites, projects, alerts, materialRequests, purchaseOrders,
   payments, inventory, equipment, users,
@@ -17,7 +17,9 @@ import {
 import { formatCurrency, formatDate, ROLE_LABELS } from '@/lib/types';
 
 export default function DashboardPage() {
-  const { user, role } = useRole();
+  const { user, role } = useAuth();
+
+  if (!user) return null;
 
   const activeSites = sites.filter((s) => s.status === 'active');
   const openAlerts = alerts.filter((a) => a.status === 'open');

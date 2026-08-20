@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { useRole } from '@/components/providers/role-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { sites, projects, alerts, getBudgetVsActual } from '@/lib/mock-data';
 import { formatCurrency } from '@/lib/types';
 
 export default function SitesListPage() {
-  const { role } = useRole();
+  const { role } = useAuth();
 
   return (
     <div>

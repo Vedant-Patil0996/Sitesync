@@ -3,24 +3,37 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { HardHat, ArrowLeft, Mail, Lock } from 'lucide-react';
+import { HardHat, ArrowLeft, Mail, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { apiFetch } from '@/lib/api';
+import { authUtil } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 600);
+    setError(null);
+    try {
+      const response = await apiFetch<{ access_token: string }>('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      authUtil.setToken(response.access_token);
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      setError(err.message || 'Invalid credentials');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,6 +52,12 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="flex items-center gap-2 border-2 border-destructive bg-destructive/10 p-3 text-sm font-medium text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -75,7 +94,7 @@ export default function LoginPage() {
             </form>
             <div className="mt-4 text-center text-sm text-muted-foreground font-medium">
               Don't have an account?{' '}
-              <Link href="/get-started" className="font-bold text-primary hover:underline">
+              <Link href="/register" className="font-bold text-primary hover:underline">
                 Create one
               </Link>
             </div>
