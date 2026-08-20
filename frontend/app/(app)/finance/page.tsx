@@ -21,8 +21,8 @@ export default function FinanceOverviewPage() {
     async function loadData() {
       try {
         const [summaryData, alertsData] = await Promise.all([
-          apiFetch('/api/v1/finance/summary'),
-          apiFetch('/api/v1/alerts?limit=5')
+          apiFetch<any>('/api/v1/finance/summary'),
+          apiFetch<any>('/api/v1/alerts?limit=5')
         ]);
         setSummary(summaryData);
         setAlerts(alertsData.items || []);

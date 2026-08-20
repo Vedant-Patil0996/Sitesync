@@ -41,7 +41,7 @@ export default function AlertsPage() {
     setLoading(true);
     try {
       const skip = (page - 1) * itemsPerPage;
-      const data = await apiFetch(`/api/v1/alerts?skip=${skip}&limit=${itemsPerPage}`);
+      const data = await apiFetch<any>(`/api/v1/alerts?skip=${skip}&limit=${itemsPerPage}`);
       setAlerts(data.items);
       setTotalPages(data.pages);
       setCurrentPage(data.page);

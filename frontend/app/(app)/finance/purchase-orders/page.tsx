@@ -26,7 +26,7 @@ export default function PurchaseOrdersPage() {
     setLoading(true);
     try {
       const skip = (page - 1) * itemsPerPage;
-      const data = await apiFetch(`/api/v1/finance/purchase-orders?skip=${skip}&limit=${itemsPerPage}`);
+      const data = await apiFetch<any>(`/api/v1/finance/purchase-orders?skip=${skip}&limit=${itemsPerPage}`);
       setOrders(data.items);
       setTotalPages(data.pages);
       setCurrentPage(data.page);

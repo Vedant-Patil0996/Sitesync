@@ -72,7 +72,7 @@ export default function InventoryPage() {
 
     setIsSubmitting(true);
     try {
-      await apiFetch('/api/v1/inventory/transactions', {
+      await apiFetch<any>('/api/v1/inventory/transactions', {
         method: 'POST',
         body: JSON.stringify({
           site_id: selectedInv.site_id,
