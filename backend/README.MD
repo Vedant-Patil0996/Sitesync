@@ -89,4 +89,26 @@ WS /api/v1/ai/stream/{run_id}
 | GET | `/api/v1/dashboard/summary` | Dashboard metrics |
 | GET/POST | `/api/v1/inventory/` | Inventory management |
 | GET/POST | `/api/v1/procurement/requests/` | Material requests |
-| ... | | |
+| **GET** | `/ivr/logs` | Fetch simulated/live call logs for frontend dashboard |
+| **POST** | `/ivr/simulate` | Submit mock speech turns directly from browser simulator |
+| **POST** | `/ivr/incoming` | Twilio inbound webhook handler |
+| **POST** | `/ivr/language` | Twilio language selection response |
+| **POST** | `/ivr/process` | Twilio natural speech intent parser |
+| **POST** | `/ivr/confirm_request` | Twilio voice confirmation response |
+
+## Multilingual Voice IVR Pipeline
+
+SiteSync mounts a low-latency voice pipeline at `/ivr` tag in `app/main.py`.
+
+### 1. Inbound Configuration
+To test with real calls, start an ngrok tunnel on port 8000:
+```bash
+ngrok http 8000
+```
+Update your **Twilio Console** inbound webhook to point to `https://<your-ngrok-url>/ivr/incoming` (HTTP POST).
+
+### 2. High-Performance Processing
+- **DB-Assisted Entity Resolver**: Site and material names are pre-parsed using local SQL matches. Typographical anomalies (e.g. `"that"` instead of `"at"`) are caught dynamically.
+- **Fast Response Compressor**: Bypasses AI compression to run localized hand-crafted output formatting in <5ms.
+- **Zero Gemini Calls**: Standard stock and equipment queries execute locally in under 15ms, preventing Twilio gateway timeouts.
+

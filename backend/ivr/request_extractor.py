@@ -20,7 +20,7 @@ _STOPWORDS = {
     "how", "many", "much", "is", "are", "the", "a", "an", "do",
     "i", "we", "have", "there", "at", "for", "of", "in", "any",
     "and", "or", "to", "that", "this", "request", "order", "add",
-    "need", "want", "please", "can", "you", "get", "me", "my",
+    "need", "want", "please", "can", "you", "get", "me", "my", "place", "put", "on", "an",
     # unit words (extracted separately, don't mix into material name)
     "bags", "bag", "tons", "ton", "kg", "kgs", "units", "unit",
     "pieces", "piece", "pallets", "pallet", "meters", "metre",
@@ -33,7 +33,7 @@ _STOPWORDS = {
 
 def _keyword_extract(speech: str) -> dict:
     """
-    Instant regex/keyword-based extraction — no API calls.
+    Instant database-assisted keyword-based extraction — no API calls.
     Returns dict with keys: material, quantity, unit, site.
     """
     text = speech.lower()
@@ -47,41 +47,89 @@ def _keyword_extract(speech: str) -> dict:
         qty = int(float(qty_str)) if float(qty_str) == int(float(qty_str)) else float(qty_str)
         unit = m.group(2) or "units"
 
-    # Extract site — everything after "at", "for site", "at the", "in"
+    # 1. DB-Assisted Site Lookup (extremely fast, handles preposition typos like "that Downtown Plaza")
     site = None
-    for prep in [" at the ", " at ", " for site ", " in the ", " in ", " for "]:
-        idx = text.rfind(prep)
-        if idx != -1:
-            candidate = speech[idx + len(prep):].strip()
-            # Remove trailing punctuation / common endings
-            candidate = re.split(r'[.?!,]', candidate)[0].strip()
-            if 2 < len(candidate) < 60:
-                site = candidate
+    from app.db.session import SessionLocal
+    from app.models.site import Site
+    db = SessionLocal()
+    try:
+        all_sites = db.query(Site).all()
+        for s in all_sites:
+            s_name = s.name.lower()
+            # Try to match the whole site name
+            if s_name in text:
+                site = s.name
                 break
+            # Try to match core parts (e.g. "downtown plaza" -> "downtown")
+            core_parts = [p.strip() for p in s_name.split() if p.strip() not in ("site", "project", "plaza", "complex", "depot", "tower")]
+            for part in core_parts:
+                if len(part) > 3 and part in text:
+                    site = s.name
+                    break
+            if site:
+                break
+    except Exception as e:
+        print(f"[ERROR] DB site lookup in extractor failed: {e}")
+    finally:
+        db.close()
 
-    # Extract material — find content words before any site preposition
+    # 2. DB-Assisted Material Lookup
     material = None
-    # Stop collecting words at site prepositions
-    _SITE_PREPS = {"at", "for", "in"}
-    words = re.findall(r"[A-Za-z]+", speech)
-    material_words = []
-    for w in words:
-        wl = w.lower()
-        if wl in _SITE_PREPS:
-            break  # Stop at "at", "for", "in" — everything after is the site
-        if wl not in _STOPWORDS and len(w) > 2:
-            material_words.append(w.lower())
-            if len(material_words) == 2:
-                break  # Max 2-word material name
-    if material_words:
-        material = " ".join(material_words)
+    db = SessionLocal()
+    try:
+        from app.models.inventory import Material
+        all_mats = db.query(Material).all()
+        for m in all_mats:
+            m_name = m.name.lower()
+            # Match core part before parentheses, e.g. "Cement" in "Cement (50kg Bag)"
+            core_name = m_name.split("(")[0].strip()
+            if core_name in text:
+                material = core_name
+                break
+            # Also try to match individual words if they are specific enough
+            words_in_mat = [w.strip() for w in core_name.split() if len(w.strip()) > 3]
+            for word in words_in_mat:
+                if word in text:
+                    material = core_name
+                    break
+            if material:
+                break
+    except Exception as e:
+        print(f"[ERROR] DB material lookup in extractor failed: {e}")
+    finally:
+        db.close()
 
+    # Fallback to structural prepositions if DB matching didn't yield site/material
+    if not site:
+        for prep in [" at the ", " at ", " for site ", " in the ", " in ", " for "]:
+            idx = text.rfind(prep)
+            if idx != -1:
+                candidate = speech[idx + len(prep):].strip()
+                candidate = re.split(r'[.?!,]', candidate)[0].strip()
+                if 2 < len(candidate) < 60:
+                    site = candidate
+                    break
+
+    if not material:
+        _SITE_PREPS = {"at", "in"}
+        words = re.findall(r"[A-Za-z]+", speech)
+        material_words = []
+        for w in words:
+            wl = w.lower()
+            if wl in _SITE_PREPS:
+                break
+            if wl not in _STOPWORDS and len(w) > 2:
+                material_words.append(w.lower())
+                if len(material_words) == 2:
+                    break
+        if material_words:
+            material = " ".join(material_words)
 
     return {"material": material, "quantity": qty, "unit": unit, "site": site}
 
 
 def _gemini_extract(speech: str, api_key: str) -> dict | None:
-    """Calls Gemini with a 3-second hard timeout. Returns dict or None."""
+    """Calls Gemini with a 5-second hard timeout. Returns dict or None."""
     result_holder = [None]
 
     def _call():
@@ -115,7 +163,7 @@ def _gemini_extract(speech: str, api_key: str) -> dict | None:
 
     t = threading.Thread(target=_call, daemon=True)
     t.start()
-    t.join(timeout=3.0)  # Hard 3-second timeout
+    t.join(timeout=5.0)  # Hard 5-second timeout
     return result_holder[0]
 
 
