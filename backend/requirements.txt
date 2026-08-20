@@ -12,3 +12,5 @@ apscheduler
 httpx
 python-dotenv
 groq
+twilio
+google-generativeai
