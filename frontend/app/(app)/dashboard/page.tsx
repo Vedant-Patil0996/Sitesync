@@ -36,7 +36,7 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title={`Welcome, ${user.full_name.split(' ')[0]}`}
+        title={`Welcome, ${(user.name || 'User').split(' ')[0]}`}
         description={`You're signed in as ${ROLE_LABELS[role]}. Here's what's happening across your sites.`}
       />
 

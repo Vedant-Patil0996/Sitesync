@@ -20,12 +20,14 @@ const AuthContext = React.createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = React.useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = React.useState(false);
 
   React.useEffect(() => {
     setToken(authUtil.getToken());
+    setIsInitialized(true);
   }, []);
 
-  const { data: user, isLoading } = useQuery<User>({
+  const { data: user, isLoading: isQueryLoading } = useQuery<User>({
     queryKey: ['auth', 'me'],
     queryFn: () => apiFetch('/api/v1/auth/me'),
     enabled: !!token,
@@ -34,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const permissions = user?.role ? ROLE_PERMISSIONS[user.role] || [] : [];
   const isAuthenticated = !!user;
+  
+  // App is loading if we haven't checked localStorage yet, OR if we have a token and are fetching the user profile
+  const isLoading = !isInitialized || (!!token && isQueryLoading);
 
   const checkPermission = React.useCallback(
     (permission: Permission) => {
@@ -49,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: user?.role || null,
         permissions,
         isAuthenticated,
-        isLoading: isLoading && !!token,
+        isLoading,
         hasPermission: checkPermission,
         logout: authUtil.logout,
       }}
