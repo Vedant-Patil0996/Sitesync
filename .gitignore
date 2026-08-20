@@ -1,29 +1,63 @@
-# Node.js
+# =====================================================================
+# SiteSync — Root .gitignore
+# Stack: Next.js (TypeScript) frontend | Node.js backend | Python AI
+# =====================================================================
+
+# ── Node.js ──────────────────────────────────────────────────────────
 node_modules/
-npm-debug.log
-yarn-error.log
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnp
+.pnp.js
+.pnpm-store/
+
+# ── Next.js ──────────────────────────────────────────────────────────
 .next/
 out/
+
+# ── Build / dist outputs ─────────────────────────────────────────────
 build/
 dist/
 
-# Python
+# ── TypeScript ───────────────────────────────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Environment variables (NEVER commit secrets) ──────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+.venv
+
+# ── SSL / Certs ───────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+
+# ── Testing / Coverage ────────────────────────────────────────────────
+coverage/
+.jest-cache/
+.jest/
+
+# ── Deployment ────────────────────────────────────────────────────────
+.vercel
+.netlify/
+
+# ── Python ────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -35,20 +69,30 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
+# ── Python: Virtual Environments ──────────────────────────────────────
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
 
-# Environment Variables
-.env
-.venv
+# ── Python: Type checking & testing ───────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+.ruff_cache/
 
-# VS Code
+# ── Jupyter ───────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── IDE / Editor ──────────────────────────────────────────────────────
 .vscode/
+.idea/
+*.swp
+*.swo
 
-# OS specific
+# ── OS specific ───────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
