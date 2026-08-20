@@ -69,10 +69,18 @@ async def get_requests(
             site_name=site.name,
             requested_by_name=user.name,
             created_at=req.created_at,
+            priority=req.priority or "normal",
+            required_date=req.required_date,
+            estimated_unit_cost=float(req.estimated_unit_cost) if req.estimated_unit_cost is not None else None,
+            total_estimated_cost=float(req.total_estimated_cost) if req.total_estimated_cost is not None else None,
+            attachment_url=req.attachment_url,
+            justification=req.justification,
             pm_status=req.pm_status,
             pm_reviewed_by_name=pm_reviewer_name,
+            pm_notes=req.pm_notes,
             finance_status=req.finance_status,
             finance_reviewed_by_name=fin_reviewer_name,
+            finance_notes=req.finance_notes,
             quotes=quotes,
             po_status=po_status
         ))
@@ -85,22 +93,84 @@ async def get_requests(
         pages=(total + limit - 1) // limit
     )
 
-@router.post("/requests", response_model=dict)
-async def create_request_with_payload(payload: MaterialRequestCreateSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("pm", "contractor"))):
-    require_site_access(db, current_user, payload.site_id, write=True)
-    material = db.query(Material).filter(Material.id == payload.material_id, Material.company_id == current_user.company_id).first()
-    if not material or payload.quantity <= 0:
+@router.post("/requests", response_model=MaterialRequestSchema)
+async def create_request(
+    request: MaterialRequestCreateSchema,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(require_role("pm", "contractor"))
+):
+    from datetime import datetime
+    require_site_access(db, current_user, request.site_id, write=True)
+    
+    # Verify site exists and belongs to company
+    site = db.query(Site).filter(Site.id == request.site_id, Site.company_id == current_user.company_id).first()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+        
+    # Verify material exists and belongs to company
+    material = db.query(Material).filter(Material.id == request.material_id, Material.company_id == current_user.company_id).first()
+    if not material or request.quantity <= 0:
         raise HTTPException(status_code=400, detail="Invalid material or quantity")
-    if payload.project_id:
-        project = db.query(Project).filter_by(id=payload.project_id, site_id=payload.site_id, company_id=current_user.company_id).first()
+
+    if request.project_id:
+        project = db.query(Project).filter_by(id=request.project_id, site_id=request.site_id, company_id=current_user.company_id).first()
         if not project:
             raise HTTPException(status_code=400, detail="Project does not belong to the selected site")
-    request = MaterialRequest(site_id=payload.site_id, project_id=payload.project_id, material_id=payload.material_id, quantity=payload.quantity, requested_by=current_user.id, justification=payload.justification)
-    db.add(request)
+
+    unit_cost = request.estimated_unit_cost
+    total_cost = (float(request.quantity) * float(unit_cost)) if unit_cost is not None else None
+
+    req_date = None
+    if request.required_date:
+        try:
+            req_date = datetime.strptime(request.required_date, "%Y-%m-%d").date()
+        except Exception:
+            pass
+
+    new_request = MaterialRequest(
+        site_id=request.site_id,
+        project_id=request.project_id,
+        material_id=request.material_id,
+        quantity=request.quantity,
+        requested_by=current_user.id,
+        priority=request.priority or "normal",
+        required_date=req_date,
+        estimated_unit_cost=unit_cost,
+        total_estimated_cost=total_cost,
+        attachment_url=request.attachment_url,
+        justification=request.justification,
+        pm_status="pending",
+        finance_status="not_applicable"
+    )
+    db.add(new_request)
     db.flush()
-    audit(db, current_user, "material_request.created", "material_request", request.id, {"site_id": payload.site_id, "quantity": payload.quantity})
+    audit(db, current_user, "material_request.created", "material_request", new_request.id, {"site_id": request.site_id, "quantity": request.quantity})
     db.commit()
-    return {"id": request.id, "status": "created"}
+    db.refresh(new_request)
+    
+    return MaterialRequestSchema(
+        id=new_request.id,
+        material_name=material.name,
+        quantity=float(new_request.quantity),
+        unit=material.unit,
+        site_name=site.name,
+        requested_by_name=current_user.name,
+        created_at=new_request.created_at,
+        priority=new_request.priority,
+        required_date=new_request.required_date,
+        estimated_unit_cost=float(new_request.estimated_unit_cost) if new_request.estimated_unit_cost is not None else None,
+        total_estimated_cost=float(new_request.total_estimated_cost) if new_request.total_estimated_cost is not None else None,
+        attachment_url=new_request.attachment_url,
+        justification=new_request.justification,
+        pm_status=new_request.pm_status,
+        pm_reviewed_by_name=None,
+        pm_notes=None,
+        finance_status=new_request.finance_status,
+        finance_reviewed_by_name=None,
+        finance_notes=None,
+        quotes=[],
+        po_status=None
+    )
 
 @router.patch("/requests/{request_id}/pm-review")
 async def pm_review_request(request_id: int, review: ReviewSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm"))):

@@ -1,45 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const DID_API_KEY_BASE64 = "WjI5dloyeGxMVzloZFhSb01ud3hNRGszT1RJMk1qTXdNREU1TmpVM01UVTJNRGhBWVd0Zk0zazRZekpLUlhGc1dYaFVlR1k0VDA5ZmVXcDY6Si0yVnJjN2xlUDRvLUlLdlYwWklJ";
+const DID_API_KEY = "Z29vZ2xlLW9hdXRoMnwxMDk3OTI2MjMwMDE5NjU3MTU2MDhAYWtfM3k4YzJKRXFsWXhUeGY4T09feWp6:J-2Vrc7leP4o-IKvV0ZII";
 
-export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
+async function proxyRequest(req: NextRequest, params: { path: string[] } | Promise<{ path: string[] }>) {
     try {
-        const path = params.path.join('/');
-        const url = `https://api.d-id.com/${path}`;
-        const body = await req.json();
+        const resolvedParams = await params;
+        const path = resolvedParams.path ? resolvedParams.path.join('/') : '';
+        const search = req.nextUrl.search;
+        const url = `https://api.d-id.com/${path}${search}`;
 
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Authorization": `Basic ${DID_API_KEY_BASE64}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(body)
-        });
+        const headers: Record<string, string> = {
+          "Authorization": `Basic ${Buffer.from(`${DID_API_KEY}:`).toString('base64')}`,
+          "Content-Type": "application/json",
+        };
 
-        const data = await response.json();
-        return NextResponse.json(data, { status: response.status });
+        const init: RequestInit = {
+          method: req.method,
+          headers,
+        };
+
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          const bodyText = await req.text();
+          if (bodyText) {
+            init.body = bodyText;
+          }
+        }
+
+        const response = await fetch(url, init);
+        const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          return NextResponse.json(data, { status: response.status });
+        } else {
+          const arrayBuffer = await response.arrayBuffer();
+          return new NextResponse(arrayBuffer, {
+            status: response.status,
+            headers: { "Content-Type": contentType },
+          });
+        }
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("D-ID proxy error:", error);
+        return NextResponse.json({ error: error.message || "D-ID API proxy error" }, { status: 500 });
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
-    try {
-        const path = params.path.join('/');
-        const url = `https://api.d-id.com/${path}`;
+export async function GET(req: NextRequest, context: { params: { path: string[] } }) {
+    return proxyRequest(req, context.params);
+}
 
-        const response = await fetch(url, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Basic ${DID_API_KEY_BASE64}`,
-                "Content-Type": "application/json"
-            }
-        });
+export async function POST(req: NextRequest, context: { params: { path: string[] } }) {
+    return proxyRequest(req, context.params);
+}
 
-        const data = await response.json();
-        return NextResponse.json(data, { status: response.status });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+export async function DELETE(req: NextRequest, context: { params: { path: string[] } }) {
+    return proxyRequest(req, context.params);
 }

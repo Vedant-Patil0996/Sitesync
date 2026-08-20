@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Text, Numeric, Boolean, DateTime, Integer, ForeignKey, func
+from sqlalchemy import Column, BigInteger, Text, Numeric, Boolean, DateTime, Date, Integer, ForeignKey, func
 from app.db.session import Base
 
 
@@ -13,13 +13,21 @@ class MaterialRequest(Base):
     requested_by = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     justification = Column(Text)
 
+    priority = Column(Text, nullable=False, default="normal")  # low | normal | high | urgent
+    required_date = Column(Date)
+    estimated_unit_cost = Column(Numeric)
+    total_estimated_cost = Column(Numeric)
+    attachment_url = Column(Text)
+
     pm_status = Column(Text, nullable=False, default="pending")  # pending | approved | rejected
     pm_reviewed_by = Column(BigInteger, ForeignKey("users.id"))
     pm_reviewed_at = Column(DateTime(timezone=True))
+    pm_notes = Column(Text)
 
     finance_status = Column(Text, nullable=False, default="not_applicable")  # not_applicable | pending | approved | rejected
     finance_reviewed_by = Column(BigInteger, ForeignKey("users.id"))
     finance_reviewed_at = Column(DateTime(timezone=True))
+    finance_notes = Column(Text)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

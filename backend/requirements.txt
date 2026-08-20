@@ -1,14 +1,38 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic
-pydantic-settings
-supabase
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
-apscheduler
-httpx
-python-dotenv
-groq
+# ── Core API ─────────────────────────────────────────────────────────────────
+fastapi>=0.141.0
+uvicorn[standard]>=0.52.0
+starlette>=1.6.0
+websockets>=15.0.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# ── Validation / Settings ─────────────────────────────────────────────────────
+pydantic>=2.9.0
+pydantic-settings>=2.0.0
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
+python-jose[cryptography]>=3.0.0
+passlib[bcrypt]>=1.7.0
+python-multipart>=0.0.9
+
+# ── Supabase ─────────────────────────────────────────────────────────────────
+supabase>=2.8.0
+
+# ── AI / LangChain / LangGraph ───────────────────────────────────────────────
+groq>=0.11.0
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-groq>=0.1.0
+langgraph>=0.1.0
+sentence-transformers>=3.1.0
+
+# ── IVR ──────────────────────────────────────────────────────────────────────
+twilio
+google-generativeai
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+httpx>=0.28.0
+python-dotenv>=1.0.0
+apscheduler>=3.0.0

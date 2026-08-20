@@ -2,6 +2,13 @@ from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 
+class MaterialSchema(BaseModel):
+    id: int
+    name: str
+    unit: str
+    default_reorder_level: float
+    barcode_code: Optional[str] = None
+
 class InventorySchema(BaseModel):
     id: int
     site_id: int
