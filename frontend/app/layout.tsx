@@ -1,17 +1,17 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, EB_Garamond } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
 });
 
-const spaceGrotesk = Space_Grotesk({
+const ebGaramond = EB_Garamond({
   subsets: ['latin'],
-  variable: '--font-display',
+  variable: '--font-eb-garamond',
   display: 'swap',
 });
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'SiteSync',
     description: 'Multi-site construction resource management platform',
-  type: 'website',
+    type: 'website',
   },
 };
 
@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans`}>
+      <body className={`${inter.variable} ${ebGaramond.variable} font-sans`}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

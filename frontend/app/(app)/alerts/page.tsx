@@ -46,19 +46,19 @@ export default function AlertsPage() {
       {/* Summary */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card className="p-4">
-          <div className="text-xs font-bold uppercase text-muted-foreground">Critical</div>
+          <div className="text-xs font-semibold text-muted-foreground">Critical</div>
           <div className="font-display text-2xl font-extrabold text-destructive">
             {alerts.filter((a) => a.severity === 'critical' && a.status === 'open').length}
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs font-bold uppercase text-muted-foreground">Warning</div>
-          <div className="font-display text-2xl font-extrabold text-amber-600">
+          <div className="text-xs font-semibold text-muted-foreground">Warning</div>
+          <div className="font-display text-2xl font-extrabold text-mahogany">
             {alerts.filter((a) => a.severity === 'warning' && a.status === 'open').length}
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs font-bold uppercase text-muted-foreground">Info</div>
+          <div className="text-xs font-semibold text-muted-foreground">Info</div>
           <div className="font-display text-2xl font-extrabold text-blue-600">
             {alerts.filter((a) => a.severity === 'info' && a.status === 'open').length}
           </div>
@@ -120,7 +120,7 @@ export default function AlertsPage() {
                   <div className="flex items-start gap-3">
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center border-2 border-border ${
                       alert.severity === 'critical' ? 'bg-destructive text-destructive-foreground' :
-                      alert.severity === 'warning' ? 'bg-amber-500 text-white' :
+                      alert.severity === 'warning' ? 'bg-soft-sand text-dark-espresso' :
                       'bg-blue-500 text-white'
                     }`}>
                       <Icon className="h-5 w-5" />
