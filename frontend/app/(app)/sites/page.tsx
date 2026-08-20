@@ -11,6 +11,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { apiFetch } from '@/lib/api';
 import { formatCurrency } from '@/lib/types';
 import { Pagination } from '@/components/shared/pagination';
+import { SiteMap } from '@/components/sites/site-map';
 
 export default function SitesListPage() {
   const { role } = useAuth();
@@ -53,6 +54,11 @@ export default function SitesListPage() {
         <div className="p-8">Loading sites...</div>
       ) : (
         <>
+          {sites.length > 0 && (
+            <div className="mb-8">
+              <SiteMap sites={sites} />
+            </div>
+          )}
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {sites.map((site) => (
               <Link key={site.id} href={`/sites/${site.id}`}>
