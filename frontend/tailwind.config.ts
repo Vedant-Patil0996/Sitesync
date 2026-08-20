@@ -12,7 +12,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-eb-garamond)', 'serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -65,18 +65,28 @@ const config: Config = {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        // SiteSync palette — direct hex utilities
+        'dark-espresso': '#211715',
+        cocoa: '#4A3028',
+        mahogany: '#6E3B32',
+        crimson: '#A8323E',
+        'warm-ivory': '#F7F0E5',
+        'soft-sand': '#E9DCCB',
+        'muted-rose': '#C98F89',
+
+        // brand scale: dark-espresso (900) → warm-ivory (50)
         brand: {
-          50: '#fef7ee',
-          100: '#fcecd8',
-          200: '#f7d5b1',
-          300: '#f2b87f',
-          400: '#ec914b',
-          500: '#e77328',
-          600: '#d85b1e',
-          700: '#b3451b',
-          800: '#8f381d',
-          900: '#6d2d19',
-          950: '#3e160c',
+          50:  '#F7F0E5',   // warm ivory
+          100: '#E9DCCB',   // soft sand
+          200: '#C98F89',   // muted rose
+          300: '#AA6259',
+          400: '#8A4A41',
+          500: '#A8323E',   // crimson
+          600: '#8E2833',
+          700: '#6E3B32',   // mahogany
+          800: '#4A3028',   // cocoa
+          900: '#211715',   // dark espresso
+          950: '#140D0C',
         },
       },
       boxShadow: {

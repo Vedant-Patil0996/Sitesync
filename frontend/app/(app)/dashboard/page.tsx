@@ -37,13 +37,13 @@ export default function DashboardPage() {
     <div>
       <PageHeader
         title={`Welcome, ${(user.name || 'User').split(' ')[0]}`}
-        description={`You're signed in as ${ROLE_LABELS[role]}. Here's what's happening across your sites.`}
+        description={`You're signed in as ${role ? ROLE_LABELS[role as keyof typeof ROLE_LABELS] : ''}. Here's what's happening across your sites.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Active Sites</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Active Sites</CardTitle>
             <Building2 className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Open Alerts</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Open Alerts</CardTitle>
             <AlertTriangle className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>
@@ -66,8 +66,8 @@ export default function DashboardPage() {
         {(role === 'pm' || role === 'admin') && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Pending Approvals</CardTitle>
-              <Clock className="h-5 w-5 text-amber-600" />
+              <CardTitle className="text-sm font-semibold text-muted-foreground">Pending Approvals</CardTitle>
+              <Clock className="h-5 w-5 text-mahogany" />
             </CardHeader>
             <CardContent>
               <div className="font-display text-3xl font-extrabold">{pendingRequests.length}</div>
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         {(role === 'finance' || role === 'admin') && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Pending POs</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground">Pending POs</CardTitle>
               <Wallet className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
@@ -92,8 +92,8 @@ export default function DashboardPage() {
         {role === 'contractor' && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">My Requests</CardTitle>
-              <Clock className="h-5 w-5 text-amber-600" />
+              <CardTitle className="text-sm font-semibold text-muted-foreground">My Requests</CardTitle>
+              <Clock className="h-5 w-5 text-mahogany" />
             </CardHeader>
             <CardContent>
               <div className="font-display text-3xl font-extrabold">{materialRequests.length}</div>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
         {(role === 'pm' || role === 'admin') && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Low Stock Items</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground">Low Stock Items</CardTitle>
               <Package className="h-5 w-5 text-destructive" />
             </CardHeader>
             <CardContent>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
         {role === 'admin' && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Total Users</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground">Total Users</CardTitle>
               <Users className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
               <div key={alert.id} className="flex items-start gap-3 border-2 border-border bg-secondary px-3 py-2.5">
                 <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border-2 border-border ${
                   alert.severity === 'critical' ? 'bg-destructive text-destructive-foreground' :
-                  alert.severity === 'warning' ? 'bg-amber-500 text-white' :
+                  alert.severity === 'warning' ? 'bg-soft-sand text-dark-espresso' :
                   'bg-blue-500 text-white'
                 }`}>
                   <AlertTriangle className="h-4 w-4" />
@@ -171,15 +171,15 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="border-2 border-border bg-secondary px-3 py-2.5">
-                <div className="text-xs font-bold uppercase text-muted-foreground">Total Budget</div>
+                <div className="text-xs font-semibold text-muted-foreground">Total budget</div>
                 <div className="font-display text-xl font-extrabold">{formatCurrency(totalBudget)}</div>
               </div>
               <div className="border-2 border-border bg-secondary px-3 py-2.5">
-                <div className="text-xs font-bold uppercase text-muted-foreground">Total Spend</div>
+                <div className="text-xs font-semibold text-muted-foreground">Total spend</div>
                 <div className="font-display text-xl font-extrabold text-primary">{formatCurrency(totalSpend)}</div>
               </div>
               <div className="border-2 border-border bg-secondary px-3 py-2.5">
-                <div className="text-xs font-bold uppercase text-muted-foreground">Scheduled Payments</div>
+                <div className="text-xs font-semibold text-muted-foreground">Scheduled payments</div>
                 <div className="font-display text-xl font-extrabold">{formatCurrency(scheduledPayments.reduce((s, p) => s + p.amount, 0))}</div>
               </div>
               <Link href="/finance">
@@ -253,15 +253,15 @@ export default function DashboardPage() {
               <div className="grid grid-cols-3 gap-2">
                 <div className="border-2 border-border bg-green-100 dark:bg-green-900 px-2 py-2 text-center">
                   <div className="font-display text-xl font-extrabold text-green-800 dark:text-green-200">{equipment.filter((e) => e.status === 'active').length}</div>
-                  <div className="text-[10px] font-bold uppercase text-muted-foreground">Active</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground">Active</div>
                 </div>
                 <div className="border-2 border-border bg-gray-100 dark:bg-gray-800 px-2 py-2 text-center">
                   <div className="font-display text-xl font-extrabold">{equipment.filter((e) => e.status === 'idle').length}</div>
-                  <div className="text-[10px] font-bold uppercase text-muted-foreground">Idle</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground">Idle</div>
                 </div>
-                <div className="border-2 border-border bg-amber-100 dark:bg-amber-900 px-2 py-2 text-center">
-                  <div className="font-display text-xl font-extrabold text-amber-800 dark:text-amber-200">{equipment.filter((e) => e.status === 'maintenance').length}</div>
-                  <div className="text-[10px] font-bold uppercase text-muted-foreground">Maint.</div>
+                <div className="border-2 border-border bg-soft-sand/30 dark:bg-soft-sand/10 px-2 py-2 text-center">
+                  <div className="font-display text-xl font-extrabold text-dark-espresso dark:text-soft-sand">{equipment.filter((e) => e.status === 'maintenance').length}</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground">Maint.</div>
                 </div>
               </div>
             </CardContent>

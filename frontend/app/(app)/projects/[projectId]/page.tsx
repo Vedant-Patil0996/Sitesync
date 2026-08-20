@@ -45,7 +45,7 @@ export default function ProjectDetailPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Budget</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Budget</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="font-display text-xl font-extrabold">{formatCurrency(project.budget_total)}</div>
@@ -53,7 +53,7 @@ export default function ProjectDetailPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Progress</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Progress</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="font-display text-xl font-extrabold">{project.progress_percent}%</div>
@@ -64,7 +64,7 @@ export default function ProjectDetailPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Start Date</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Start Date</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="font-display text-lg font-extrabold">{formatDate(project.start_date)}</div>
@@ -72,7 +72,7 @@ export default function ProjectDetailPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">End Date</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">End Date</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="font-display text-lg font-extrabold">{formatDate(project.end_date)}</div>
@@ -111,7 +111,7 @@ export default function ProjectDetailPage() {
                   </div>
                   <div className="mt-2 flex items-center gap-3 text-xs font-medium text-muted-foreground">
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDate(task.start_date)} - {formatDate(task.end_date)}</span>
-                    {dep && <span className="text-amber-600">Depends on: {dep.name}</span>}
+                    {dep && <span className="text-mahogany">Depends on: {dep.name}</span>}
                   </div>
                 </div>
               );

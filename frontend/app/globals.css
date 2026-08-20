@@ -4,60 +4,99 @@
 
 @layer base {
   :root {
-    --background: 42 47% 97%;
-    --foreground: 20 20% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 20% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 20% 10%;
-    --primary: 22 76% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 36 33% 94%;
-    --secondary-foreground: 20 20% 10%;
-    --muted: 36 33% 94%;
-    --muted-foreground: 20 10% 40%;
-    --accent: 36 33% 94%;
-    --accent-foreground: 20 20% 10%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 20 20% 10%;
-    --input: 20 20% 10%;
-    --ring: 22 76% 53%;
-    --chart-1: 22 76% 53%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 199 89% 48%;
-    --chart-5: 0 72% 51%;
+    /* ── Final Palette ────────────────────────────────────────────
+       #211715  dark espresso     → only for very important text / borders
+       #4A3028  cocoa             → headings / navigation / border default
+       #6E3B32  mahogany          → secondary accent
+       #A8323E  crimson           → CTAs / important highlights
+       #F7F0E5  warm ivory        → main background
+       #E9DCCB  soft sand         → secondary surfaces
+       #C98F89  muted rose        → subtle accents
+    ──────────────────────────────────────────────────────────── */
+
+    /* page / canvas */
+    --background: 37 53% 93%;           /* #F7F0E5 warm ivory */
+    --foreground: 10 22% 11%;           /* #211715 dark espresso */
+
+    /* card & popover */
+    --card: 37 53% 96%;                 /* slightly lighter warm ivory */
+    --card-foreground: 10 22% 11%;
+    --popover: 37 53% 96%;
+    --popover-foreground: 10 22% 11%;
+
+    /* primary — Crimson */
+    --primary: 354 54% 43%;             /* #A8323E */
+    --primary-foreground: 37 53% 93%;   /* warm ivory text on crimson */
+
+    /* secondary — Soft Sand */
+    --secondary: 34 41% 86%;            /* #E9DCCB */
+    --secondary-foreground: 14 30% 22%; /* cocoa text */
+
+    /* muted — soft sand / taupe tint */
+    --muted: 34 30% 88%;
+    --muted-foreground: 14 30% 22%;
+
+    /* accent — Mahogany */
+    --accent: 9 38% 31%;                /* #6E3B32 */
+    --accent-foreground: 37 53% 93%;
+
+    /* destructive — Crimson */
+    --destructive: 354 54% 43%;
+    --destructive-foreground: 37 53% 93%;
+
+    /* borders & inputs */
+    --border: 10 22% 11%;                /* dark espresso borders (neobrutalist) */
+    --input: 10 22% 11%;
+    --ring: 354 54% 43%;                 /* Crimson focus ring */
+
+    /* chart series */
+    --chart-1: 354 54% 43%;             /* Crimson */
+    --chart-2: 9 38% 31%;               /* Mahogany */
+    --chart-3: 6 37% 66%;               /* Muted Rose */
+    --chart-4: 14 30% 22%;              /* Cocoa */
+    --chart-5: 37 53% 93%;              /* Warm Ivory */
+
     --radius: 0.25rem;
-    --brutal-shadow: #0a0a0a;
+    --brutal-shadow: #211715;           /* dark espresso neobrutalist shadow */
   }
 
   .dark {
-    --background: 20 16% 9%;
-    --foreground: 40 40% 94%;
-    --card: 20 14% 13%;
-    --card-foreground: 40 40% 94%;
-    --popover: 20 14% 13%;
-    --popover-foreground: 40 40% 94%;
-    --primary: 25 80% 58%;
-    --primary-foreground: 20 20% 8%;
-    --secondary: 20 10% 18%;
-    --secondary-foreground: 40 40% 94%;
-    --muted: 20 10% 18%;
-    --muted-foreground: 40 15% 65%;
-    --accent: 20 10% 18%;
-    --accent-foreground: 40 40% 94%;
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 40 40% 94%;
-    --input: 40 40% 94%;
-    --ring: 25 80% 58%;
-    --chart-1: 25 80% 58%;
-    --chart-2: 142 71% 50%;
-    --chart-3: 38 92% 55%;
-    --chart-4: 199 89% 55%;
-    --chart-5: 0 72% 58%;
-    --brutal-shadow: #fef7ee;
+    /* dark mode: flip to dark espresso canvas, warm ivory text */
+    --background: 10 22% 11%;           /* #211715 dark espresso */
+    --foreground: 37 53% 93%;           /* warm ivory text */
+
+    --card: 14 30% 22%;                 /* cocoa card background */
+    --card-foreground: 37 53% 93%;
+    --popover: 14 30% 22%;
+    --popover-foreground: 37 53% 93%;
+
+    /* primary — Crimson */
+    --primary: 354 54% 43%;             /* #A8323E */
+    --primary-foreground: 10 22% 11%;   /* dark espresso text on Crimson */
+
+    --secondary: 9 38% 31%;             /* #6E3B32 mahogany secondary */
+    --secondary-foreground: 37 53% 93%;
+
+    --muted: 14 20% 18%;
+    --muted-foreground: 37 30% 75%;
+
+    --accent: 6 37% 66%;                /* #C98F89 muted rose */
+    --accent-foreground: 10 22% 11%;
+
+    --destructive: 354 54% 43%;
+    --destructive-foreground: 37 53% 93%;
+
+    --border: 37 53% 93%;               /* warm ivory borders on dark */
+    --input: 37 53% 93%;
+    --ring: 354 54% 43%;
+
+    --chart-1: 354 54% 43%;
+    --chart-2: 9 38% 31%;
+    --chart-3: 6 37% 66%;
+    --chart-4: 37 53% 93%;
+    --chart-5: 14 30% 22%;
+
+    --brutal-shadow: #F7F0E5;           /* warm ivory shadow on dark */
   }
 }
 
@@ -91,7 +130,7 @@
     @apply hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm;
   }
   .brutal-badge {
-    @apply border-2 border-border font-bold uppercase tracking-wide;
+    @apply border-2 border-border font-semibold text-xs tracking-normal;
   }
 }
 

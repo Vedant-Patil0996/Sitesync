@@ -55,7 +55,7 @@ export default function SiteDetailPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Projects</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Projects</CardTitle>
             <FolderKanban className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -64,7 +64,7 @@ export default function SiteDetailPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Materials</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Materials</CardTitle>
             <Package className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -73,7 +73,7 @@ export default function SiteDetailPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Equipment</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Equipment</CardTitle>
             <Wrench className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -82,7 +82,7 @@ export default function SiteDetailPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Open Alerts</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Open Alerts</CardTitle>
             <AlertTriangle className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>

@@ -7,14 +7,6 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useAuth } from '@/providers/auth-provider';
 import { ROLE_LABELS } from '@/lib/types';
 import { notifications } from '@/lib/mock-data';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { Role } from '@/lib/types';
 
 interface TopbarProps {
   onMenuClick: () => void;

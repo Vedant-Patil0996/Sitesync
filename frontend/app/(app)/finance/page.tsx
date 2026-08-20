@@ -29,7 +29,7 @@ export default function FinanceOverviewPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Total Budget</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Budget</CardTitle>
             <Wallet className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -38,7 +38,7 @@ export default function FinanceOverviewPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Total Spend</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Spend</CardTitle>
             <TrendingDown className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>
@@ -47,8 +47,8 @@ export default function FinanceOverviewPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Pending POs</CardTitle>
-            <TrendingUp className="h-5 w-5 text-amber-600" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Pending POs</CardTitle>
+            <TrendingUp className="h-5 w-5 text-mahogany" />
           </CardHeader>
           <CardContent>
             <div className="font-display text-2xl font-extrabold">{pendingPOs.length}</div>
@@ -57,8 +57,8 @@ export default function FinanceOverviewPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Scheduled Payments</CardTitle>
-            <Wallet className="h-5 w-5 text-amber-600" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Scheduled Payments</CardTitle>
+            <Wallet className="h-5 w-5 text-mahogany" />
           </CardHeader>
           <CardContent>
             <div className="font-display text-2xl font-extrabold">{scheduledPayments.length}</div>
