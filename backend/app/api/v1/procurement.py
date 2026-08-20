@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.session import get_db
-from app.core.deps import get_current_user, require_role
+from app.core.deps import get_current_user, require_role, require_site_access, audit
 from app.models.user import User
 from app.models.site import Site
 from app.models.inventory import Material
 from app.models.vendor import Vendor
 from app.models.procurement import MaterialRequest, VendorQuote, PurchaseOrder
-from app.schemas.procurement import MaterialRequestSchema, VendorQuoteSchema
+from app.models.project import Project
+from app.schemas.procurement import MaterialRequestSchema, VendorQuoteSchema, MaterialRequestCreateSchema, ReviewSchema, VendorQuoteCreateSchema, PurchaseOrderCreateSchema
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter()
@@ -84,17 +85,53 @@ async def get_requests(
         pages=(total + limit - 1) // limit
     )
 
-@router.post("/requests")
-async def create_request(db: Session = Depends(get_db), current_user: User = Depends(require_role("pm", "contractor"))):
-    pass
+@router.post("/requests", response_model=dict)
+async def create_request_with_payload(payload: MaterialRequestCreateSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("pm", "contractor"))):
+    require_site_access(db, current_user, payload.site_id, write=True)
+    material = db.query(Material).filter(Material.id == payload.material_id, Material.company_id == current_user.company_id).first()
+    if not material or payload.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Invalid material or quantity")
+    if payload.project_id:
+        project = db.query(Project).filter_by(id=payload.project_id, site_id=payload.site_id, company_id=current_user.company_id).first()
+        if not project:
+            raise HTTPException(status_code=400, detail="Project does not belong to the selected site")
+    request = MaterialRequest(site_id=payload.site_id, project_id=payload.project_id, material_id=payload.material_id, quantity=payload.quantity, requested_by=current_user.id, justification=payload.justification)
+    db.add(request)
+    db.flush()
+    audit(db, current_user, "material_request.created", "material_request", request.id, {"site_id": payload.site_id, "quantity": payload.quantity})
+    db.commit()
+    return {"id": request.id, "status": "created"}
 
 @router.patch("/requests/{request_id}/pm-review")
-async def pm_review_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm"))):
-    pass
+async def pm_review_request(request_id: int, review: ReviewSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm"))):
+    req = db.query(MaterialRequest, Site).join(Site, MaterialRequest.site_id == Site.id).filter(MaterialRequest.id == request_id, Site.company_id == current_user.company_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Material request not found")
+    request = req[0]
+    if request.pm_status != "pending":
+        raise HTTPException(status_code=409, detail="Request has already been reviewed")
+    request.pm_status = "approved" if review.approved else "rejected"
+    request.finance_status = "pending" if review.approved else "not_applicable"
+    request.pm_reviewed_by = current_user.id
+    request.pm_reviewed_at = func.now()
+    audit(db, current_user, f"material_request.pm_{request.pm_status}", "material_request", request.id, {"reason": review.reason})
+    db.commit()
+    return {"status": request.pm_status}
 
 @router.patch("/requests/{request_id}/finance-review")
-async def finance_review_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "finance"))):
-    pass
+async def finance_review_request(request_id: int, review: ReviewSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "finance"))):
+    req = db.query(MaterialRequest, Site).join(Site, MaterialRequest.site_id == Site.id).filter(MaterialRequest.id == request_id, Site.company_id == current_user.company_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Material request not found")
+    request = req[0]
+    if request.pm_status != "approved" or request.finance_status != "pending":
+        raise HTTPException(status_code=409, detail="Request is not pending finance review")
+    request.finance_status = "approved" if review.approved else "rejected"
+    request.finance_reviewed_by = current_user.id
+    request.finance_reviewed_at = func.now()
+    audit(db, current_user, f"material_request.finance_{request.finance_status}", "material_request", request.id, {"reason": review.reason})
+    db.commit()
+    return {"status": request.finance_status}
 
 @router.get("/quotes", response_model=PaginatedResponse[VendorQuoteSchema])
 async def get_quotes(
@@ -103,9 +140,7 @@ async def get_quotes(
     db: Session = Depends(get_db), 
     current_user: User = Depends(require_role("admin", "finance"))
 ):
-    # In a real app we'd join requests to filter by company.
-    # For now simply paginating VendorQuotes directly for demonstration.
-    query = db.query(VendorQuote, Vendor).join(Vendor, VendorQuote.vendor_id == Vendor.id)
+    query = db.query(VendorQuote, Vendor).join(Vendor, VendorQuote.vendor_id == Vendor.id).join(MaterialRequest, VendorQuote.request_id == MaterialRequest.id).join(Site, MaterialRequest.site_id == Site.id).filter(Site.company_id == current_user.company_id)
     
     total = query.count()
     quotes_db = query.offset(skip).limit(limit).all()
@@ -130,9 +165,49 @@ async def get_quotes(
     )
 
 @router.post("/quotes")
-async def add_quote(db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "finance"))):
-    pass
+async def add_quote(payload: VendorQuoteCreateSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "finance"))):
+    request = db.query(MaterialRequest, Site).join(Site, MaterialRequest.site_id == Site.id).filter(MaterialRequest.id == payload.request_id, Site.company_id == current_user.company_id).first()
+    vendor = db.query(Vendor).filter(Vendor.id == payload.vendor_id, Vendor.company_id == current_user.company_id).first()
+    if not request or not vendor or payload.unit_price < 0 or payload.total_price < 0:
+        raise HTTPException(status_code=400, detail="Invalid request, vendor, or quote")
+    req = request[0]
+    if req.pm_status != "approved" or req.finance_status not in ("pending", "approved"):
+        raise HTTPException(status_code=409, detail="Quotes require PM approval")
+    quote = VendorQuote(request_id=req.id, vendor_id=payload.vendor_id, unit_price=payload.unit_price, delivery_days=payload.delivery_days, total_price=payload.total_price)
+    db.add(quote)
+    db.flush()
+    audit(db, current_user, "vendor_quote.created", "vendor_quote", quote.id, {"request_id": req.id})
+    db.commit()
+    return {"id": quote.id, "status": "created"}
 
 @router.patch("/quotes/{quote_id}/select")
 async def select_quote(quote_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "finance"))):
-    pass
+    row = db.query(VendorQuote, MaterialRequest, Site).join(MaterialRequest, VendorQuote.request_id == MaterialRequest.id).join(Site, MaterialRequest.site_id == Site.id).filter(VendorQuote.id == quote_id, Site.company_id == current_user.company_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    quote, request, site = row
+    if request.pm_status != "approved" or request.finance_status != "approved":
+        raise HTTPException(status_code=409, detail="Request must be approved by PM and Finance")
+    db.query(VendorQuote).filter(VendorQuote.request_id == request.id).update({"is_selected": False})
+    quote.is_selected = True
+    audit(db, current_user, "vendor_quote.selected", "vendor_quote", quote.id, {"request_id": request.id})
+    db.commit()
+    return {"status": "selected"}
+
+@router.post("/purchase-orders")
+async def create_purchase_order(payload: PurchaseOrderCreateSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "finance"))):
+    row = db.query(MaterialRequest, VendorQuote, Site).join(VendorQuote, VendorQuote.request_id == MaterialRequest.id).join(Site, MaterialRequest.site_id == Site.id).filter(MaterialRequest.id == payload.request_id, VendorQuote.id == payload.quote_id, Site.company_id == current_user.company_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Approved request or quote not found")
+    request, quote, site = row
+    if request.pm_status != "approved" or request.finance_status != "approved" or not quote.is_selected:
+        raise HTTPException(status_code=409, detail="Request and selected quote must be approved")
+    existing = db.query(PurchaseOrder).filter(PurchaseOrder.request_id == request.id, PurchaseOrder.status.notin_(["cancelled", "rejected"])).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Purchase order already exists")
+    po = PurchaseOrder(request_id=request.id, vendor_quote_id=quote.id, vendor_id=quote.vendor_id, quantity=request.quantity, unit_price=quote.unit_price, amount=quote.total_price, status="approved", approved_by=current_user.id, approved_at=func.now())
+    db.add(po)
+    db.flush()
+    audit(db, current_user, "purchase_order.created", "purchase_order", po.id, {"request_id": request.id, "quote_id": quote.id})
+    db.commit()
+    return {"id": po.id, "status": po.status}

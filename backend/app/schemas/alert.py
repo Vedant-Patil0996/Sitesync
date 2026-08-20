@@ -10,6 +10,8 @@ class AlertSchema(BaseModel):
     severity: str
     title: str
     description: Optional[str]
+    source_table: Optional[str] = None
+    source_id: Optional[int] = None
     status: str
     resolved_by_name: Optional[str]
     resolved_at: Optional[datetime]

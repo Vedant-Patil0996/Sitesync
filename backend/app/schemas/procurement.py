@@ -33,3 +33,25 @@ class ProcurementQuoteViewSchema(BaseModel):
     site_name: str
     requested_by_name: str
     quotes: List[VendorQuoteSchema]
+
+class MaterialRequestCreateSchema(BaseModel):
+    site_id: int
+    project_id: Optional[int] = None
+    material_id: int
+    quantity: float
+    justification: Optional[str] = None
+
+class ReviewSchema(BaseModel):
+    approved: bool
+    reason: Optional[str] = None
+
+class VendorQuoteCreateSchema(BaseModel):
+    request_id: int
+    vendor_id: int
+    unit_price: float
+    delivery_days: Optional[int] = None
+    total_price: float
+
+class PurchaseOrderCreateSchema(BaseModel):
+    request_id: int
+    quote_id: int

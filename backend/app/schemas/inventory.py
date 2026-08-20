@@ -29,3 +29,10 @@ class TransactionCreateSchema(BaseModel):
     type: str
     quantity: float
     reference: Optional[str] = None
+
+class TransferCreateSchema(BaseModel):
+    source_site_id: int
+    destination_site_id: int
+    material_id: int
+    quantity: float
+    reference: Optional[str] = None

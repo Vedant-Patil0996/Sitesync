@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Text, Numeric, Date, DateTime, ForeignKey, func
+from sqlalchemy import Column, BigInteger, Text, Numeric, Date, DateTime, ForeignKey, func, CheckConstraint
 from app.db.session import Base
 
 
@@ -18,6 +18,11 @@ class Project(Base):
     progress_percent = Column(Numeric, nullable=False, default=0)
     created_by = Column(BigInteger, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("budget_allocated >= 0", name="projects_budget_nonnegative"),
+        CheckConstraint("progress_percent >= 0 AND progress_percent <= 100", name="projects_progress_range"),
+        CheckConstraint("status in ('planning', 'in_progress', 'on_hold', 'completed', 'archived')", name="projects_status_valid"),
+    )
 
 
 class Task(Base):
@@ -28,6 +33,8 @@ class Task(Base):
     name = Column(Text, nullable=False)
     description = Column(Text)
     status = Column(Text, nullable=False, default="not_started")  # not_started | in_progress | delayed | completed
+    priority = Column(Text, nullable=False, default="medium")  # low | medium | high | critical
+    progress_percent = Column(Numeric, nullable=False, default=0)
     start_date = Column(Date)
     end_date = Column(Date)
     depends_on_task_id = Column(BigInteger, ForeignKey("tasks.id"))

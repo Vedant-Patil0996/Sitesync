@@ -21,6 +21,7 @@ export default function MaterialRequestsPage() {
   const [loading, setLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
+  const [refreshKey, setRefreshKey] = React.useState(0);
   const limit = 10;
 
   React.useEffect(() => {
@@ -38,7 +39,19 @@ export default function MaterialRequestsPage() {
       }
     }
     loadRequests();
-  }, [page]);
+  }, [page, refreshKey]);
+
+  const reviewRequest = async (requestId: number, type: 'pm' | 'finance', approved: boolean) => {
+    try {
+      await apiFetch(`/api/v1/procurement/requests/${requestId}/${type}-review`, {
+        method: 'PATCH',
+        body: JSON.stringify({ approved, reason: approved ? undefined : 'Rejected from SiteSync review' }),
+      });
+      setRefreshKey((value) => value + 1);
+    } catch (error: any) {
+      console.error('Failed to review material request', error);
+    }
+  };
 
   const filtered = requests.filter((mr) => {
     if (statusFilter === 'all') return true;
@@ -170,14 +183,14 @@ export default function MaterialRequestsPage() {
                     <div className="flex flex-wrap gap-2">
                       {req.pm_status === 'pending' && (
                         <>
-                          <Button size="sm" className="gap-1"><Check className="h-3 w-3" /> Approve (PM)</Button>
-                          <Button size="sm" variant="destructive" className="gap-1"><X className="h-3 w-3" /> Reject</Button>
+                          <Button size="sm" className="gap-1" onClick={() => reviewRequest(req.id, 'pm', true)}><Check className="h-3 w-3" /> Approve (PM)</Button>
+                          <Button size="sm" variant="destructive" className="gap-1" onClick={() => reviewRequest(req.id, 'pm', false)}><X className="h-3 w-3" /> Reject</Button>
                         </>
                       )}
                       {req.pm_status === 'approved' && req.finance_status === 'pending' && (
                         <>
-                          <Button size="sm" className="gap-1"><Check className="h-3 w-3" /> Approve PO (Finance)</Button>
-                          <Button size="sm" variant="destructive" className="gap-1"><X className="h-3 w-3" /> Reject</Button>
+                          <Button size="sm" className="gap-1" onClick={() => reviewRequest(req.id, 'finance', true)}><Check className="h-3 w-3" /> Approve (Finance)</Button>
+                          <Button size="sm" variant="destructive" className="gap-1" onClick={() => reviewRequest(req.id, 'finance', false)}><X className="h-3 w-3" /> Reject</Button>
                         </>
                       )}
                       {req.pm_status === 'approved' && req.finance_status === 'not_applicable' && (

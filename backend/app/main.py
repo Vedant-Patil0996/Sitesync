@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+# Register every SQLAlchemy model before any request can flush ORM state.
+from app.db import base  # noqa: F401
 from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin, dashboard
 
 app = FastAPI(
