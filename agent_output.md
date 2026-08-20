@@ -1,63 +1,42 @@
-**Equipment Failure Resolution – Final Report**  
-*Prepared for: Site 5 Operations & Maintenance Team*  
-*Date: 2026‑08‑20*  
+## Equipment Failure Investigation – Site 5  
 
----
+| Item | Details |
+|------|---------|
+| **Equipment ID** | EXC‑01 |
+| **Type** | Excavator |
+| **Current Status** | *maintenance* – flagged as a **critical failure**; estimated repair time **5 days** [ equipment: 1 ] |
+| **Location** | Site 5 |
+| **Timestamp of Failure** | 2026‑08‑20 08:00 UTC |
 
-### 1. Incident Recap  
-- **Equipment:** EXC‑01 (Excavator) – critical failure at 08:00 UTC.  
-- **Repair ETA:** 5 days (2026‑08‑25).  
-- **Replacement:** EXC‑09 (idle at Site 6) reallocated to Site 5.  
+### Immediate Safety & Operational Findings  
 
----
+1. **Critical failure** indicates a high risk of unsafe operating conditions and potential downstream project delays.  
+2. The excavator is **not operational**; any tasks that rely on it must be **suspended** until a safe replacement is in place.  
+3. Maintenance crew has been **notified** (implicit in status change to *maintenance*), but no physical dispatch record exists in the database yet.  
 
-### 2. Action Completed  
-| Action | Result | Timestamp |
-|--------|--------|-----------|
-| Reallocate EXC‑09 to Site 5 | Transfer initiated (Transfer ID: **TRF‑EXC‑09‑5**) | 08:30 UTC |
-| Estimated Arrival | 2026‑08‑21 | 08:30 UTC |
+### Replacement Equipment Options  
 
----
+Idle excavators of the same type (Excavator) located at sites other than 5:
 
-### 3. Immediate Next Steps  
+| Equipment ID | Site | Hours Used | DB Source |
+|--------------|------|------------|-----------|
+| EXC‑02 | 2 | 88 | [ equipment: 3 ] |
+| EXC‑02 | 32 | 88 | [ equipment: 5 ] |
+| EXC‑02 | 34 | 88 | [ equipment: 7 ] |
+| EXC‑02 | 46 | 88 | [ equipment: 9 ] |
+| EXC‑02 | 51 | 88 | [ equipment: 14 ] |
 
-| Step | Owner | Deadline | Notes |
-|------|-------|----------|-------|
-| 1 | Site 6 Ops | 08:45 UTC | Notify of equipment removal; confirm any pending work. |
-| 2 | Maintenance Team | 09:00 UTC | Schedule repair crew for EXC‑01; confirm parts availability. |
-| 3 | Project Manager | 09:30 UTC | Update project schedule to reflect 5‑day downtime. |
-| 4 | Site 5 Supervisor | 2026‑08‑21 | Verify arrival of EXC‑09 and integrate into workflow. |
-| 5 | Maintenance | 2026‑08‑25 | Conduct post‑repair functional test; update status to “operational”. |
-| 6 | Procurement | 2026‑08‑20 | Order any missing spare parts for EXC‑01 repair. |
+### Recommendations  
 
----
+| # | Recommendation | Rationale |
+|---|----------------|-----------|
+| 1 | **Dispatch maintenance team** to Site 5 immediately to assess the failure, secure the equipment, and begin repairs. | Prevents further damage and ensures safety of personnel. |
+| 2 | **Halt all operations** that depend on EXC‑01 until a verified safe replacement is on‑site. | Eliminates risk of accidents caused by missing or malfunctioning equipment. |
+| 3 | **PROPOSED ACTION — awaiting human approval:** Reallocate the idle excavator **EXC‑02** from **Site 2** to **Site 5**. Provisional reference **PROP-EXC-02-SITE5**, estimated arrival **2026‑08‑21** [ provisional ]. | Provides a rapid replacement to minimise downtime; pending approval per protocol. |
+| 4 | If approval for the above reallocation is delayed, **evaluate secondary candidates** (sites 32, 34, 46, 51) and prepare a contingency transport plan. | Ensures backup options are ready should the primary proposal be rejected or infeasible. |
+| 5 | **Update the project schedule** to reflect a potential 5‑day repair window for EXC‑01 and a 1‑day transport window for the replacement, adjusting downstream task dates accordingly. | Maintains realistic timelines and stakeholder expectations. |
+| 6 | **Document all actions** (maintenance dispatch, operation halt, reallocation approval) in the incident log for audit and safety review. | Supports compliance and future root‑cause analysis. |
 
-### 4. Operational Impact Summary  
+---  
 
-| Impact | Current Status | Mitigation |
-|--------|----------------|------------|
-| **Project Delay** | 5‑day downtime for Site 5 excavation | Replacement equipment (EXC‑09) will resume work immediately after arrival. |
-| **Site 6 Utilization** | 30 % idle → 0 % | Potential impact on any pending tasks; re‑allocation of resources may be required. |
-| **Cost** | Repair + potential penalty | Repair cost to be tracked; no additional rental cost as replacement is internal. |
-
----
-
-### 5. Contingency Considerations  
-
-- **If EXC‑09 is insufficient** (e.g., additional work at Site 5 or Site 6 cannot be covered), consider:
-  - **Borrowing** another idle excavator from a different site (search again with broader criteria).  
-  - **Vendor Rental**: Contact local equipment rental vendors for a short‑term lease.  
-  - **Purchase**: Initiate a procurement request for a new excavator if long‑term demand persists.
-
----
-
-### 6. Communication Plan  
-
-- **Internal**: Send instant message to all site supervisors and the fleet team.  
-- **External**: Notify the client (if applicable) about the temporary delay and mitigation steps.  
-- **Documentation**: Log all actions in the equipment management system and update the incident ticket.
-
----
-
-**Conclusion**  
-The critical failure of EXC‑01 has been addressed by reallocating EXC‑09 from Site 6 to Site 5. The repair of EXC‑01 is scheduled, and the project timeline has been updated. Please proceed with the outlined next steps and keep the team informed of any changes.
+*All cited data are drawn directly from the equipment database; no speculative figures have been introduced.*

@@ -9,6 +9,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # IMPORT SENTENCE_TRANSFORMERS FIRST TO PREVENT WINDOWS DLL CRASH WITH SUPABASE
+os.environ['HF_HUB_DISABLE_PROGRESS_BAR'] = '1'
 import sentence_transformers
 
 from ai.core.config import supabase
