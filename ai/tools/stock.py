@@ -5,7 +5,7 @@ from ai.core.config import supabase
 def get_transaction_history(material_id: str, site_id: str, days: int = 14, type: str = None) -> List[Dict[str, Any]]:
     since = (datetime.utcnow() - timedelta(days=days)).isoformat()
     q = supabase.table('inventory_transactions').select(
-        'id, type, quantity, date, reference, materials(name, unit), sites(name)'
+        'id, type, quantity, date, reference, materials(name, unit), sites!inventory_transactions_site_id_fkey(name)'
     ).eq('material_id', material_id).eq('site_id', site_id).gte('date', since).order('date', desc=True)
     
     if type:
