@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin, dashboard, ai
+from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin, dashboard, ai, chat
 from app.events.manager import event_manager
 from app.events.models import make_event
 
@@ -44,6 +44,7 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(admin.router,         prefix="/api/v1/admin",         tags=["Admin"])
 app.include_router(dashboard.router,     prefix="/api/v1/dashboard",     tags=["Dashboard"])
 app.include_router(ai.router,            prefix="/api/v1/ai",            tags=["AI"])
+app.include_router(chat.router,          prefix="/api/v1/chat",          tags=["Chat"])
 
 
 @app.get("/health")
