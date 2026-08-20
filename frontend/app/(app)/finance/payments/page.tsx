@@ -1,20 +1,73 @@
 'use client';
 
-import { Wallet, Check, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Wallet, Check, Clock, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { Pagination } from '@/components/shared/pagination';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { payments, purchaseOrders } from '@/lib/mock-data';
 import { formatCurrency, formatDate } from '@/lib/types';
+import { apiFetch } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function PaymentsPage() {
-  const totalScheduled = payments.filter((p) => p.status === 'scheduled').reduce((s, p) => s + p.amount, 0);
-  const totalReleased = payments.filter((p) => p.status === 'released').reduce((s, p) => s + p.amount, 0);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [summary, setSummary] = useState<any>(null);
+  const itemsPerPage = 10;
+
+  const loadData = async (page: number) => {
+    setLoading(true);
+    try {
+      const skip = (page - 1) * itemsPerPage;
+      const [paymentsData, summaryData] = await Promise.all([
+        apiFetch(`/api/v1/finance/payments?skip=${skip}&limit=${itemsPerPage}`),
+        apiFetch('/api/v1/finance/summary')
+      ]);
+      setPayments(paymentsData.items);
+      setTotalPages(paymentsData.pages);
+      setCurrentPage(paymentsData.page);
+      setSummary(summaryData);
+    } catch (error) {
+      console.error('Failed to load payments:', error);
+      toast.error('Failed to load payments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(1);
+  }, []);
+
+  const handleRelease = async (id: number) => {
+    try {
+      await apiFetch(`/api/v1/finance/payments/${id}/release`, { method: 'PATCH' });
+      toast.success('Payment released');
+      loadData(currentPage);
+    } catch (error) {
+      toast.error('Failed to release payment');
+    }
+  };
+
+  const totalScheduled = summary?.pending_payments || 0;
+  // Approximation, since we can't get just total released easily without calculating it in summary
+  const totalReleased = (summary?.total_spent || 0) - (summary?.pending_payments || 0);
+
+  if (loading && payments.length === 0) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -63,29 +116,52 @@ export default function PaymentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((pay) => {
-                const po = purchaseOrders.find((p) => p.id === pay.purchase_order_id);
-                return (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : payments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No payments found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                payments.map((pay) => (
                   <TableRow key={pay.id}>
-                    <TableCell className="font-mono text-xs font-bold">PAY-{pay.id.slice(-6).toUpperCase()}</TableCell>
-                    <TableCell className="font-bold">{pay.po_vendor_name}</TableCell>
+                    <TableCell className="font-mono text-xs font-bold">PAY-{pay.id.toString().padStart(6, '0')}</TableCell>
+                    <TableCell className="font-bold">{pay.vendor_name}</TableCell>
                     <TableCell className="font-extrabold text-primary">{formatCurrency(pay.amount)}</TableCell>
                     <TableCell><StatusBadge status={pay.status} /></TableCell>
                     <TableCell className="text-sm">{pay.released_by_name ?? <span className="text-muted-foreground">Pending</span>}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{pay.released_at ? formatDate(pay.released_at) : formatDate(pay.created_at)}</TableCell>
                     <TableCell>
                       {pay.status === 'scheduled' && (
-                        <Button size="sm" className="gap-1 h-7 px-2"><Check className="h-3 w-3" /> Release</Button>
+                        <Button size="sm" className="gap-1 h-7 px-2" onClick={() => handleRelease(pay.id)}>
+                          <Check className="h-3 w-3" /> Release
+                        </Button>
                       )}
                       {pay.status === 'released' && (
                         <Badge variant="success" className="brutal-badge text-[10px]">RELEASED</Badge>
                       )}
                     </TableCell>
                   </TableRow>
-                );
-              })}
+                ))
+              )}
             </TableBody>
           </Table>
+          
+          {!loading && totalPages > 1 && (
+            <div className="p-4 border-t-2 border-border flex justify-end bg-accent/20">
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={loadData}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, Check, X, Clock, Search } from 'lucide-react';
+import { AlertTriangle, Check, X, Clock, Search, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { EmptyState } from '@/components/shared/empty-state';
+import { Pagination } from '@/components/shared/pagination';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { alerts } from '@/lib/mock-data';
 import { formatDateTime } from '@/lib/types';
+import { apiFetch } from '@/lib/api';
+import { toast } from 'sonner';
 
 const ALERT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   stock: AlertTriangle,
@@ -24,14 +26,50 @@ const ALERT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string 
 };
 
 export default function AlertsPage() {
+  const [alerts, setAlerts] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const itemsPerPage = 10;
+  
   const [search, setSearch] = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState('all');
   const [severityFilter, setSeverityFilter] = React.useState('all');
   const [statusFilter, setStatusFilter] = React.useState('all');
 
+  const loadData = async (page: number) => {
+    setLoading(true);
+    try {
+      const skip = (page - 1) * itemsPerPage;
+      const data = await apiFetch(`/api/v1/alerts?skip=${skip}&limit=${itemsPerPage}`);
+      setAlerts(data.items);
+      setTotalPages(data.pages);
+      setCurrentPage(data.page);
+    } catch (error) {
+      console.error('Failed to load alerts:', error);
+      toast.error('Failed to load alerts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    loadData(1);
+  }, []);
+
+  const handleAction = async (id: number, action: 'resolve' | 'snooze' | 'dismiss') => {
+    try {
+      await apiFetch(`/api/v1/alerts/${id}/${action}`, { method: 'PATCH' });
+      toast.success(`Alert ${action}d`);
+      loadData(currentPage);
+    } catch (error) {
+      toast.error(`Failed to ${action} alert`);
+    }
+  };
+
   const filtered = alerts.filter((a) => {
     const matchesSearch = a.title.toLowerCase().includes(search.toLowerCase()) ||
-                          a.description.toLowerCase().includes(search.toLowerCase()) ||
+                          (a.description || '').toLowerCase().includes(search.toLowerCase()) ||
                           a.site_name.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === 'all' || a.type === typeFilter;
     const matchesSeverity = severityFilter === 'all' || a.severity === severityFilter;
@@ -108,7 +146,11 @@ export default function AlertsPage() {
       </div>
 
       {/* Alert list */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex h-32 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyState icon={AlertTriangle} title="No alerts found" description="No alerts match your current filters." />
       ) : (
         <div className="space-y-3">
@@ -141,9 +183,9 @@ export default function AlertsPage() {
                     </div>
                     {alert.status === 'open' && (
                       <div className="flex flex-col gap-1 sm:flex-row">
-                        <Button size="sm" className="gap-1 h-8"><Check className="h-3 w-3" /> Resolve</Button>
-                        <Button size="sm" variant="outline" className="gap-1 h-8"><Clock className="h-3 w-3" /> Snooze</Button>
-                        <Button size="sm" variant="destructive" className="gap-1 h-8"><X className="h-3 w-3" /> Dismiss</Button>
+                        <Button size="sm" className="gap-1 h-8" onClick={() => handleAction(alert.id, 'resolve')}><Check className="h-3 w-3" /> Resolve</Button>
+                        <Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => handleAction(alert.id, 'snooze')}><Clock className="h-3 w-3" /> Snooze</Button>
+                        <Button size="sm" variant="destructive" className="gap-1 h-8" onClick={() => handleAction(alert.id, 'dismiss')}><X className="h-3 w-3" /> Dismiss</Button>
                       </div>
                     )}
                   </div>
@@ -151,6 +193,16 @@ export default function AlertsPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+      
+      {!loading && totalPages > 1 && (
+        <div className="mt-4 flex justify-end">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={loadData}
+          />
         </div>
       )}
     </div>
