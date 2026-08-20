@@ -28,7 +28,7 @@ export default function UserManagementPage() {
     setLoading(true);
     try {
       const skip = (page - 1) * itemsPerPage;
-      const data = await apiFetch(`/api/v1/admin/users?skip=${skip}&limit=${itemsPerPage}`);
+      const data = await apiFetch<any>(`/api/v1/admin/users?skip=${skip}&limit=${itemsPerPage}`);
       setUsers(data.items);
       setTotalPages(data.pages);
       setCurrentPage(data.page);

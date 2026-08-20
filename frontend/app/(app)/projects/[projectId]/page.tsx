@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, FolderKanban, CheckCircle2, Circle, AlertCircle, Calendar, Flag } from 'lucide-react';
@@ -7,17 +8,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import {
-  projects, sites, getTasksByProject, getMilestonesByProject,
-} from '@/lib/mock-data';
 import { formatCurrency, formatDate } from '@/lib/types';
+import { apiFetch } from '@/lib/api';
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.projectId as string;
-  const project = projects.find((p) => p.id === projectId);
+  const [projectData, setProjectData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!project) {
+  useEffect(() => {
+    async function fetchProject() {
+      try {
+        const data = await apiFetch<any>(`/api/v1/projects/${projectId}`);
+        setProjectData(data);
+      } catch (error) {
+        console.error('Failed to load project details', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProject();
+  }, [projectId]);
+
+  if (loading) {
+    return <div className="p-8">Loading project details...</div>;
+  }
+
+  if (!projectData) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
         <p className="text-lg font-bold">Project not found</p>
@@ -26,9 +44,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const site = sites.find((s) => s.id === project.site_id);
-  const projectTasks = getTasksByProject(project.id);
-  const projectMilestones = getMilestonesByProject(project.id);
+  const { tasks: projectTasks, milestones: projectMilestones } = projectData;
 
   return (
     <div>
@@ -37,9 +53,9 @@ export default function ProjectDetailPage() {
       </Link>
 
       <PageHeader
-        title={project.name}
-        description={`${site?.name} - ${site?.location_text}`}
-        action={<StatusBadge status={project.status} />}
+        title={projectData.name}
+        description={projectData.site_name || 'No site assigned'}
+        action={<StatusBadge status={projectData.status} />}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -48,7 +64,7 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-semibold text-muted-foreground">Budget</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="font-display text-xl font-extrabold">{formatCurrency(project.budget_total)}</div>
+            <div className="font-display text-xl font-extrabold">{formatCurrency(projectData.budget_total)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -56,9 +72,9 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-semibold text-muted-foreground">Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="font-display text-xl font-extrabold">{project.progress_percent}%</div>
+            <div className="font-display text-xl font-extrabold">{projectData.progress_percent}%</div>
             <div className="mt-1 h-3 border-2 border-border bg-secondary">
-              <div className="h-full bg-primary" style={{ width: `${project.progress_percent}%` }} />
+              <div className="h-full bg-primary" style={{ width: `${projectData.progress_percent}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -67,7 +83,7 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-semibold text-muted-foreground">Start Date</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="font-display text-lg font-extrabold">{formatDate(project.start_date)}</div>
+            <div className="font-display text-lg font-extrabold">{formatDate(projectData.start_date)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -75,7 +91,7 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-semibold text-muted-foreground">End Date</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="font-display text-lg font-extrabold">{formatDate(project.end_date)}</div>
+            <div className="font-display text-lg font-extrabold">{formatDate(projectData.end_date)}</div>
           </CardContent>
         </Card>
       </div>
@@ -87,9 +103,9 @@ export default function ProjectDetailPage() {
             <CardTitle className="flex items-center gap-2"><FolderKanban className="h-5 w-5" /> Tasks</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {projectTasks.map((task) => {
+            {projectTasks.map((task: any) => {
               const dep = task.depends_on_task_id
-                ? projectTasks.find((t) => t.id === task.depends_on_task_id)
+                ? projectTasks.find((t: any) => t.id === task.depends_on_task_id)
                 : null;
               return (
                 <div key={task.id} className="border-2 border-border bg-secondary px-3 py-2.5">
@@ -125,7 +141,7 @@ export default function ProjectDetailPage() {
             <CardTitle className="flex items-center gap-2"><Flag className="h-5 w-5" /> Milestones</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {projectMilestones.map((ms) => (
+            {projectMilestones.map((ms: any) => (
               <div key={ms.id} className="flex items-center justify-between border-2 border-border bg-secondary px-3 py-2.5">
                 <div className="flex items-center gap-2">
                   <div className={`flex h-8 w-8 items-center justify-center border-2 border-border ${

@@ -28,8 +28,8 @@ export default function PaymentsPage() {
     try {
       const skip = (page - 1) * itemsPerPage;
       const [paymentsData, summaryData] = await Promise.all([
-        apiFetch(`/api/v1/finance/payments?skip=${skip}&limit=${itemsPerPage}`),
-        apiFetch('/api/v1/finance/summary')
+        apiFetch<any>(`/api/v1/finance/payments?skip=${skip}&limit=${itemsPerPage}`),
+        apiFetch<any>('/api/v1/finance/summary')
       ]);
       setPayments(paymentsData.items);
       setTotalPages(paymentsData.pages);
