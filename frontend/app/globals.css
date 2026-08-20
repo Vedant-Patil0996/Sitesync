@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 47% 97%;
+    --foreground: 20 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 20% 10%;
+    --primary: 22 76% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 36 33% 94%;
+    --secondary-foreground: 20 20% 10%;
+    --muted: 36 33% 94%;
+    --muted-foreground: 20 10% 40%;
+    --accent: 36 33% 94%;
+    --accent-foreground: 20 20% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 20% 10%;
+    --input: 20 20% 10%;
+    --ring: 22 76% 53%;
+    --chart-1: 22 76% 53%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 0 72% 51%;
+    --radius: 0.25rem;
+    --brutal-shadow: #0a0a0a;
+  }
+
+  .dark {
+    --background: 20 16% 9%;
+    --foreground: 40 40% 94%;
+    --card: 20 14% 13%;
+    --card-foreground: 40 40% 94%;
+    --popover: 20 14% 13%;
+    --popover-foreground: 40 40% 94%;
+    --primary: 25 80% 58%;
+    --primary-foreground: 20 20% 8%;
+    --secondary: 20 10% 18%;
+    --secondary-foreground: 40 40% 94%;
+    --muted: 20 10% 18%;
+    --muted-foreground: 40 15% 65%;
+    --accent: 20 10% 18%;
+    --accent-foreground: 40 40% 94%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 40% 94%;
+    --input: 40 40% 94%;
+    --ring: 25 80% 58%;
+    --chart-1: 25 80% 58%;
+    --chart-2: 142 71% 50%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 199 89% 55%;
+    --chart-5: 0 72% 58%;
+    --brutal-shadow: #fef7ee;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .brutal-border {
+    @apply border-2 border-border;
+  }
+  .brutal-border-3 {
+    @apply border-[3px] border-border;
+  }
+  .brutal-card {
+    @apply border-2 border-border bg-card text-card-foreground shadow-brutal;
+  }
+  .brutal-input {
+    @apply border-2 border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus:border-primary;
+  }
+  .brutal-btn {
+    @apply border-2 border-border font-bold shadow-brutal transition-all active:translate-x-1 active:translate-y-1 active:shadow-brutal-sm;
+  }
+  .brutal-btn-hover {
+    @apply hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm;
+  }
+  .brutal-badge {
+    @apply border-2 border-border font-bold uppercase tracking-wide;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+}
