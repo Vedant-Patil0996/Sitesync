@@ -2,11 +2,11 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.core.deps import get_current_user, require_role
+from app.core.deps import get_current_user, require_role, require_site_access, audit
 from app.models.user import User
-from app.models.site import Site
+from app.models.site import Site, SiteAssignment
 from app.models.inventory import Inventory, Material, InventoryTransaction
-from app.schemas.inventory import InventorySchema, TransactionCreateSchema, MaterialSchema
+from app.schemas.inventory import InventorySchema, TransactionCreateSchema, MaterialSchema, TransferCreateSchema, InventoryTransactionSchema
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter()
@@ -22,6 +22,8 @@ async def get_inventory(
         .join(Material, Inventory.material_id == Material.id)\
         .join(Site, Inventory.site_id == Site.id)\
         .filter(Site.company_id == current_user.company_id)
+    if current_user.role in ("pm", "contractor"):
+        query = query.filter(Site.id.in_(db.query(SiteAssignment.site_id).filter(SiteAssignment.user_id == current_user.id)))
         
     total = query.count()
     inventory_db = query.offset(skip).limit(limit).all()
@@ -62,7 +64,14 @@ async def get_materials(db: Session = Depends(get_db), current_user: User = Depe
     ]
 @router.get("/by-site/{site_id}")
 async def get_site_inventory(site_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return []
+    require_site_access(db, current_user, site_id)
+    rows = db.query(Inventory, Material).join(Material, Inventory.material_id == Material.id).filter(Inventory.site_id == site_id).all()
+    site = db.query(Site).filter(Site.id == site_id).first()
+    return [InventorySchema(
+        id=inv.id, site_id=inv.site_id, site_name=site.name, material_id=inv.material_id,
+        material_name=mat.name, unit=mat.unit, quantity=float(inv.quantity),
+        reorder_level=float(inv.reorder_level), updated_at=inv.updated_at
+    ) for inv, mat in rows]
 
 @router.post("/transactions")
 async def log_transaction(
@@ -75,10 +84,7 @@ async def log_transaction(
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
         
-    # check if site belongs to company
-    site = db.query(Site).filter(Site.id == tx.site_id, Site.company_id == current_user.company_id).first()
-    if not site:
-        raise HTTPException(status_code=404, detail="Site not found")
+    require_site_access(db, current_user, tx.site_id, write=True)
 
     # get or create inventory record
     inv = db.query(Inventory).filter(Inventory.site_id == tx.site_id, Inventory.material_id == tx.material_id).first()
@@ -127,10 +133,52 @@ async def log_transaction(
         reference=tx.reference
     )
     db.add(transaction)
+    db.flush()
+    audit(db, current_user, f"inventory.{db_tx_type.lower()}", "inventory_transaction", transaction.id, {
+        "site_id": tx.site_id, "material_id": tx.material_id, "quantity": float(tx.quantity)
+    })
     db.commit()
     
     return {"status": "success"}
 
-@router.get("/transactions")
-async def get_transactions(db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm"))):
-    return []
+@router.post("/transfers")
+async def transfer_inventory(
+    transfer: TransferCreateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm")),
+):
+    if transfer.source_site_id == transfer.destination_site_id:
+        raise HTTPException(status_code=400, detail="Source and destination sites must differ")
+    if transfer.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be positive")
+    require_site_access(db, current_user, transfer.source_site_id, write=True)
+    require_site_access(db, current_user, transfer.destination_site_id, write=True)
+    material = db.query(Material).filter(Material.id == transfer.material_id, Material.company_id == current_user.company_id).first()
+    if not material:
+        raise HTTPException(status_code=404, detail="Material not found")
+    source = db.query(Inventory).filter(Inventory.site_id == transfer.source_site_id, Inventory.material_id == transfer.material_id).with_for_update().first()
+    if not source or source.quantity < Decimal(str(transfer.quantity)):
+        raise HTTPException(status_code=400, detail="Insufficient stock at source site")
+    destination = db.query(Inventory).filter(Inventory.site_id == transfer.destination_site_id, Inventory.material_id == transfer.material_id).with_for_update().first()
+    if not destination:
+        destination = Inventory(site_id=transfer.destination_site_id, material_id=transfer.material_id, quantity=0, reorder_level=material.default_reorder_level)
+        db.add(destination)
+        db.flush()
+    quantity = Decimal(str(transfer.quantity))
+    source.quantity -= quantity
+    destination.quantity += quantity
+    source_tx = InventoryTransaction(site_id=transfer.source_site_id, material_id=transfer.material_id, user_id=current_user.id, type="TRANSFER_OUT", quantity=quantity, related_site_id=transfer.destination_site_id, reference=transfer.reference)
+    destination_tx = InventoryTransaction(site_id=transfer.destination_site_id, material_id=transfer.material_id, user_id=current_user.id, type="TRANSFER_IN", quantity=quantity, related_site_id=transfer.source_site_id, reference=transfer.reference)
+    db.add_all([source_tx, destination_tx])
+    db.flush()
+    audit(db, current_user, "inventory.transfer", "inventory_transaction", source_tx.id, {"destination_transaction_id": destination_tx.id, "quantity": float(quantity)})
+    db.commit()
+    return {"status": "success", "source_transaction_id": source_tx.id, "destination_transaction_id": destination_tx.id}
+
+@router.get("/transactions", response_model=list[InventoryTransactionSchema])
+async def get_transactions(db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm", "contractor", "finance"))):
+    query = db.query(InventoryTransaction, Material, User, Site).join(Material, InventoryTransaction.material_id == Material.id).join(User, InventoryTransaction.user_id == User.id).join(Site, InventoryTransaction.site_id == Site.id).filter(Site.company_id == current_user.company_id)
+    if current_user.role in ("pm", "contractor"):
+        query = query.filter(Site.id.in_(db.query(SiteAssignment.site_id).filter(SiteAssignment.user_id == current_user.id)))
+    rows = query.order_by(InventoryTransaction.date.desc()).limit(200).all()
+    return [InventoryTransactionSchema(id=tx.id, type=tx.type, material_name=mat.name, unit=mat.unit, quantity=float(tx.quantity), performed_by_name=user.name, note=tx.reference, created_at=tx.date) for tx, mat, user, site in rows]

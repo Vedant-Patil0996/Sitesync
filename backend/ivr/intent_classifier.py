@@ -38,8 +38,7 @@ def _keyword_classify(speech: str, role: str) -> str:
     if any(k in text for k in _EQUIPMENT_KEYWORDS):
         return "equipment_query"
     if any(k in text for k in _BUDGET_KEYWORDS):
-        if role == "pm":
-            return "budget_query"
+        return "budget_query"
     if any(k in text for k in _FAQ_KEYWORDS):
         return "general_faq"
     return "unclear"
@@ -83,7 +82,7 @@ def _gemini_classify(speech: str, role: str, api_key: str) -> str:
 
     t = threading.Thread(target=_call, daemon=True)
     t.start()
-    t.join(timeout=3.0)  # Hard 3-second timeout — Twilio needs response in 5s
+    t.join(timeout=5.0)  # Hard 5-second timeout — Twilio needs response in 5s
     return result_holder[0]
 
 

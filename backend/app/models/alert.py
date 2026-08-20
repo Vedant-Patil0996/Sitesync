@@ -14,7 +14,7 @@ class Alert(Base):
     description = Column(Text)
     source_table = Column(Text)               # links back to the record that caused this
     source_id = Column(BigInteger)
-    status = Column(Text, nullable=False, default="open")  # open | approved | dismissed | snoozed
+    status = Column(Text, nullable=False, default="open")  # open | approved | resolved | dismissed | snoozed
     resolved_by = Column(BigInteger, ForeignKey("users.id"))
     resolved_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

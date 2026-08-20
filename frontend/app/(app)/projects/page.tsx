@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FolderKanban, ArrowRight, Calendar, Wallet } from 'lucide-react';
+import { FolderKanban, ArrowRight, Calendar, Wallet, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { apiFetch } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/types';
 import { Pagination } from '@/components/shared/pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function ProjectsListPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -16,15 +19,33 @@ export default function ProjectsListPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
+  const { role } = useAuth();
+  const [showCreate, setShowCreate] = useState(false);
+  const [name, setName] = useState('');
+  const [siteId, setSiteId] = useState('');
+  const [pmId, setPmId] = useState('');
+  const [budget, setBudget] = useState('0');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [status, setStatus] = useState('planning');
+  const [sites, setSites] = useState<any[]>([]);
+  const [pms, setPms] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function loadProjects() {
       setLoading(true);
       try {
         const skip = (page - 1) * limit;
-        const result = await apiFetch<any>(`/api/v1/projects?skip=${skip}&limit=${limit}`);
+        const [result, siteResult, userResult] = await Promise.all([
+          apiFetch<any>(`/api/v1/projects?skip=${skip}&limit=${limit}`),
+          apiFetch<any>('/api/v1/sites?skip=0&limit=100'),
+          role === 'admin' ? apiFetch<any>('/api/v1/admin/users?skip=0&limit=100') : Promise.resolve({ items: [] }),
+        ]);
         setProjects(result.items);
         setTotalPages(result.pages);
+        setSites(siteResult.items || []);
+        setPms((userResult.items || []).filter((user: any) => user.role === 'pm' && user.is_active));
       } catch (error) {
         console.error('Failed to load projects', error);
       } finally {
@@ -32,11 +53,53 @@ export default function ProjectsListPage() {
       }
     }
     loadProjects();
-  }, [page]);
+  }, [page, role]);
+
+  const createProject = async () => {
+    if (!name.trim() || !siteId || !pmId) return;
+    setSaving(true);
+    try {
+      await apiFetch('/api/v1/projects/', {
+        method: 'POST',
+        body: JSON.stringify({ name, site_id: Number(siteId), pm_id: Number(pmId), budget_allocated: Number(budget), start_date: startDate || null, end_date: endDate || null, status }),
+      });
+      setShowCreate(false);
+      setName('');
+      setSiteId('');
+      setPmId('');
+      setBudget('0');
+      setStartDate('');
+      setEndDate('');
+      setStatus('planning');
+      setPage(1);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
-      <PageHeader title="Projects" description="All construction projects across your sites" />
+      <PageHeader
+        title="Projects"
+        description="All construction projects across your sites"
+        action={role === 'admin' ? <Button className="gap-2" onClick={() => setShowCreate((value) => !value)}><Plus className="h-4 w-4" /> New Project</Button> : undefined}
+      />
+
+      {role === 'admin' && showCreate && (
+        <Card className="mb-6">
+          <CardHeader><CardTitle className="text-lg">Create Project</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Input placeholder="Project name" value={name} onChange={(event) => setName(event.target.value)} />
+            <select className="h-10 rounded-sm border-2 border-border bg-card px-3 text-sm" value={siteId} onChange={(event) => setSiteId(event.target.value)}><option value="">Select site</option>{sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select>
+            <select className="h-10 rounded-sm border-2 border-border bg-card px-3 text-sm" value={pmId} onChange={(event) => setPmId(event.target.value)}><option value="">Assign PM</option>{pms.map((pm) => <option key={pm.id} value={pm.id}>{pm.name} ({pm.email})</option>)}</select>
+            <Input type="number" min="0" placeholder="Initial budget" value={budget} onChange={(event) => setBudget(event.target.value)} />
+            <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+            <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+            <select className="h-10 rounded-sm border-2 border-border bg-card px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}><option value="planning">Planning</option><option value="in_progress">In progress</option><option value="on_hold">On hold</option></select>
+            <div className="sm:col-span-2 lg:col-span-4"><Button onClick={createProject} disabled={saving || !name.trim() || !siteId || !pmId}>{saving ? 'Creating...' : 'Create Project'}</Button></div>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="p-8">Loading projects...</div>

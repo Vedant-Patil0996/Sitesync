@@ -8,9 +8,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+
+# Register every SQLAlchemy model before any request can flush ORM state.
+from app.db import base  # noqa: F401
 from app.api.v1 import (
     auth, sites, projects, inventory, equipment,
-    procurement, finance, alerts, notifications, admin, dashboard, ai
+    procurement, finance, alerts, notifications, admin, dashboard, ai, chat
 )
 from ivr import webhook
 from app.events.manager import event_manager
@@ -44,6 +47,7 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(admin.router,         prefix="/api/v1/admin",         tags=["Admin"])
 app.include_router(dashboard.router,     prefix="/api/v1/dashboard",     tags=["Dashboard"])
 app.include_router(ai.router,            prefix="/api/v1/ai",            tags=["AI"])
+app.include_router(chat.router,          prefix="/api/v1/chat",          tags=["Chat"])
 app.include_router(webhook.router,       prefix="/ivr",                  tags=["IVR"])
 
 
