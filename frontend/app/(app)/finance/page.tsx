@@ -1,25 +1,49 @@
 'use client';
 
-import { Wallet, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Wallet, TrendingUp, TrendingDown, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { projects, sites, purchaseOrders, payments, alerts, getBudgetVsActual } from '@/lib/mock-data';
 import { formatCurrency } from '@/lib/types';
+import { apiFetch } from '@/lib/api';
 
 export default function FinanceOverviewPage() {
-  const totalBudget = projects.reduce((sum, p) => sum + p.budget_total, 0);
-  const totalSpend = purchaseOrders
-    .filter((po) => po.status === 'delivered' || po.status === 'approved')
-    .reduce((sum, po) => sum + po.amount, 0);
-  const pendingPOs = purchaseOrders.filter((po) => po.status === 'pending_finance');
-  const scheduledPayments = payments.filter((p) => p.status === 'scheduled');
-  const budgetAlerts = alerts.filter((a) => a.type === 'budget' && a.status === 'open');
+  const [summary, setSummary] = useState<any>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [summaryData, alertsData] = await Promise.all([
+          apiFetch('/api/v1/finance/summary'),
+          apiFetch('/api/v1/alerts?limit=5')
+        ]);
+        setSummary(summaryData);
+        setAlerts(alertsData.items || []);
+      } catch (error) {
+        console.error('Failed to load finance data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const budgetAlerts = alerts.filter((a) => a.type === 'budget' && (a.status === 'open' || a.status === 'new'));
 
   return (
     <div>
@@ -33,7 +57,7 @@ export default function FinanceOverviewPage() {
             <Wallet className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{formatCurrency(totalBudget)}</div>
+            <div className="font-display text-2xl font-extrabold">{formatCurrency(summary?.total_budget || 0)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -42,27 +66,25 @@ export default function FinanceOverviewPage() {
             <TrendingDown className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold text-primary">{formatCurrency(totalSpend)}</div>
+            <div className="font-display text-2xl font-extrabold text-primary">{formatCurrency(summary?.total_spent || 0)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Pending POs</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Pending Payments</CardTitle>
             <TrendingUp className="h-5 w-5 text-mahogany" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{pendingPOs.length}</div>
-            <p className="text-xs text-muted-foreground font-medium">{formatCurrency(pendingPOs.reduce((s, po) => s + po.amount, 0))}</p>
+            <div className="font-display text-2xl font-extrabold">{formatCurrency(summary?.pending_payments || 0)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Scheduled Payments</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Recent Transactions</CardTitle>
             <Wallet className="h-5 w-5 text-mahogany" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-2xl font-extrabold">{scheduledPayments.length}</div>
-            <p className="text-xs text-muted-foreground font-medium">{formatCurrency(scheduledPayments.reduce((s, p) => s + p.amount, 0))}</p>
+            <div className="font-display text-2xl font-extrabold">{summary?.recent_transactions?.length || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -85,13 +107,13 @@ export default function FinanceOverviewPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sites.map((site) => {
-                const { budget, spent } = getBudgetVsActual(site.id);
+              {summary?.sites_budget?.map((site: any) => {
+                const { budget, spent } = site;
                 const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
                 const remaining = budget - spent;
                 return (
-                  <TableRow key={site.id}>
-                    <TableCell className="font-bold">{site.name}</TableCell>
+                  <TableRow key={site.site_id}>
+                    <TableCell className="font-bold">{site.site_name}</TableCell>
                     <TableCell>{formatCurrency(budget)}</TableCell>
                     <TableCell className="font-extrabold text-primary">{formatCurrency(spent)}</TableCell>
                     <TableCell className={remaining < 0 ? 'text-destructive font-bold' : ''}>{formatCurrency(remaining)}</TableCell>
@@ -104,6 +126,11 @@ export default function FinanceOverviewPage() {
                   </TableRow>
                 );
               })}
+              {(!summary?.sites_budget || summary.sites_budget.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">No sites found.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

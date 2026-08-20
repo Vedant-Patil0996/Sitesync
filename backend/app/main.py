@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin
+from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin, dashboard
 
 app = FastAPI(
     title="SiteSync API",
@@ -29,6 +29,7 @@ app.include_router(finance.router, prefix="/api/v1/finance", tags=["Finance"])
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 
 @app.get("/health")
 def health_check():

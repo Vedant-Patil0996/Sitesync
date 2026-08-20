@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Building2, Package, Wrench, Wallet, AlertTriangle,
@@ -10,28 +11,29 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { useAuth } from '@/providers/auth-provider';
-import {
-  sites, projects, alerts, materialRequests, purchaseOrders,
-  payments, inventory, equipment, users,
-} from '@/lib/mock-data';
+import { apiFetch } from '@/lib/api';
 import { formatCurrency, formatDate, ROLE_LABELS } from '@/lib/types';
 
 export default function DashboardPage() {
   const { user, role } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) return null;
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const result = await apiFetch<any>('/api/v1/dashboard/summary');
+        setData(result);
+      } catch (error) {
+        console.error('Failed to load dashboard', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboard();
+  }, []);
 
-  const activeSites = sites.filter((s) => s.status === 'active');
-  const openAlerts = alerts.filter((a) => a.status === 'open');
-  const criticalAlerts = openAlerts.filter((a) => a.severity === 'critical');
-  const pendingRequests = materialRequests.filter((mr) => mr.pm_status === 'pending');
-  const pendingPOs = purchaseOrders.filter((po) => po.status === 'pending_finance');
-  const scheduledPayments = payments.filter((p) => p.status === 'scheduled');
-  const lowStockItems = inventory.filter((i) => i.current_stock <= i.reorder_level);
-  const totalBudget = projects.reduce((sum, p) => sum + p.budget_total, 0);
-  const totalSpend = purchaseOrders
-    .filter((po) => po.status === 'delivered' || po.status === 'approved')
-    .reduce((sum, po) => sum + po.amount, 0);
+  if (!user || loading || !data) return <div className="p-8">Loading dashboard...</div>;
 
   return (
     <div>
@@ -47,8 +49,8 @@ export default function DashboardPage() {
             <Building2 className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-3xl font-extrabold">{activeSites.length}</div>
-            <p className="mt-1 text-xs text-muted-foreground font-medium">{sites.length} total sites</p>
+            <div className="font-display text-3xl font-extrabold">{data.active_sites}</div>
+            <p className="mt-1 text-xs text-muted-foreground font-medium">{data.total_sites} total sites</p>
           </CardContent>
         </Card>
 
@@ -58,8 +60,8 @@ export default function DashboardPage() {
             <AlertTriangle className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="font-display text-3xl font-extrabold">{openAlerts.length}</div>
-            <p className="mt-1 text-xs text-muted-foreground font-medium">{criticalAlerts.length} critical</p>
+            <div className="font-display text-3xl font-extrabold">{data.open_alerts}</div>
+            <p className="mt-1 text-xs text-muted-foreground font-medium">{data.critical_alerts} critical</p>
           </CardContent>
         </Card>
 
@@ -70,7 +72,7 @@ export default function DashboardPage() {
               <Clock className="h-5 w-5 text-mahogany" />
             </CardHeader>
             <CardContent>
-              <div className="font-display text-3xl font-extrabold">{pendingRequests.length}</div>
+              <div className="font-display text-3xl font-extrabold">{data.pending_requests}</div>
               <p className="mt-1 text-xs text-muted-foreground font-medium">Material requests</p>
             </CardContent>
           </Card>
@@ -83,8 +85,8 @@ export default function DashboardPage() {
               <Wallet className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="font-display text-3xl font-extrabold">{pendingPOs.length}</div>
-              <p className="mt-1 text-xs text-muted-foreground font-medium">{formatCurrency(pendingPOs.reduce((s, po) => s + po.amount, 0))}</p>
+              <div className="font-display text-3xl font-extrabold">{data.pending_pos}</div>
+              <p className="mt-1 text-xs text-muted-foreground font-medium">{formatCurrency(data.pending_po_amount)}</p>
             </CardContent>
           </Card>
         )}
@@ -96,7 +98,7 @@ export default function DashboardPage() {
               <Clock className="h-5 w-5 text-mahogany" />
             </CardHeader>
             <CardContent>
-              <div className="font-display text-3xl font-extrabold">{materialRequests.length}</div>
+              <div className="font-display text-3xl font-extrabold">{data.pending_requests}</div>
               <p className="mt-1 text-xs text-muted-foreground font-medium">Submitted by you</p>
             </CardContent>
           </Card>
@@ -109,7 +111,7 @@ export default function DashboardPage() {
               <Package className="h-5 w-5 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="font-display text-3xl font-extrabold">{lowStockItems.length}</div>
+              <div className="font-display text-3xl font-extrabold">{data.low_stock_items}</div>
               <p className="mt-1 text-xs text-muted-foreground font-medium">Below reorder level</p>
             </CardContent>
           </Card>
@@ -122,8 +124,8 @@ export default function DashboardPage() {
               <Users className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="font-display text-3xl font-extrabold">{users.filter((u) => u.is_active).length}</div>
-              <p className="mt-1 text-xs text-muted-foreground font-medium">{users.length} total registered</p>
+              <div className="font-display text-3xl font-extrabold">{data.active_users}</div>
+              <p className="mt-1 text-xs text-muted-foreground font-medium">{data.total_users} total registered</p>
             </CardContent>
           </Card>
         )}
@@ -140,7 +142,7 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {openAlerts.slice(0, 5).map((alert) => (
+            {data.recent_alerts?.slice(0, 5).map((alert: any) => (
               <div key={alert.id} className="flex items-start gap-3 border-2 border-border bg-secondary px-3 py-2.5">
                 <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border-2 border-border ${
                   alert.severity === 'critical' ? 'bg-destructive text-destructive-foreground' :
@@ -158,7 +160,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-            {openAlerts.length === 0 && (
+            {(!data.recent_alerts || data.recent_alerts.length === 0) && (
               <p className="text-sm text-muted-foreground font-medium text-center py-4">No open alerts. All clear!</p>
             )}
           </CardContent>
@@ -172,15 +174,15 @@ export default function DashboardPage() {
             <CardContent className="space-y-3">
               <div className="border-2 border-border bg-secondary px-3 py-2.5">
                 <div className="text-xs font-semibold text-muted-foreground">Total budget</div>
-                <div className="font-display text-xl font-extrabold">{formatCurrency(totalBudget)}</div>
+                <div className="font-display text-xl font-extrabold">{formatCurrency(data.total_budget)}</div>
               </div>
               <div className="border-2 border-border bg-secondary px-3 py-2.5">
                 <div className="text-xs font-semibold text-muted-foreground">Total spend</div>
-                <div className="font-display text-xl font-extrabold text-primary">{formatCurrency(totalSpend)}</div>
+                <div className="font-display text-xl font-extrabold text-primary">{formatCurrency(data.total_spend)}</div>
               </div>
               <div className="border-2 border-border bg-secondary px-3 py-2.5">
                 <div className="text-xs font-semibold text-muted-foreground">Scheduled payments</div>
-                <div className="font-display text-xl font-extrabold">{formatCurrency(scheduledPayments.reduce((s, p) => s + p.amount, 0))}</div>
+                <div className="font-display text-xl font-extrabold">{formatCurrency(data.scheduled_payments)}</div>
               </div>
               <Link href="/finance">
                 <Button variant="outline" className="w-full gap-1">
@@ -191,7 +193,7 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {(role === 'pm' || role === 'admin') && pendingRequests.length > 0 && (
+        {(role === 'pm' || role === 'admin') && data.pending_requests_list?.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Pending Material Requests</CardTitle>
@@ -202,7 +204,7 @@ export default function DashboardPage() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-2">
-              {pendingRequests.slice(0, 4).map((req) => (
+              {data.pending_requests_list.slice(0, 4).map((req: any) => (
                 <Link key={req.id} href="/procurement/requests">
                   <div className="flex items-center justify-between border-2 border-border bg-secondary px-3 py-2.5 hover:bg-accent transition-colors">
                     <div>
@@ -220,13 +222,13 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {(role === 'finance' || role === 'admin') && pendingPOs.length > 0 && (
+        {(role === 'finance' || role === 'admin') && data.pending_pos_list?.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Pending PO Approvals</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {pendingPOs.slice(0, 3).map((po) => (
+              {data.pending_pos_list.slice(0, 3).map((po: any) => (
                 <Link key={po.id} href="/finance/purchase-orders">
                   <div className="border-2 border-border bg-secondary px-3 py-2.5 hover:bg-accent transition-colors">
                     <p className="font-bold text-sm">{po.vendor_name}</p>
@@ -252,15 +254,15 @@ export default function DashboardPage() {
             <CardContent className="space-y-2">
               <div className="grid grid-cols-3 gap-2">
                 <div className="border-2 border-border bg-green-100 dark:bg-green-900 px-2 py-2 text-center">
-                  <div className="font-display text-xl font-extrabold text-green-800 dark:text-green-200">{equipment.filter((e) => e.status === 'active').length}</div>
+                  <div className="font-display text-xl font-extrabold text-green-800 dark:text-green-200">{data.equipment_status?.active || 0}</div>
                   <div className="text-[10px] font-semibold text-muted-foreground">Active</div>
                 </div>
                 <div className="border-2 border-border bg-gray-100 dark:bg-gray-800 px-2 py-2 text-center">
-                  <div className="font-display text-xl font-extrabold">{equipment.filter((e) => e.status === 'idle').length}</div>
+                  <div className="font-display text-xl font-extrabold">{data.equipment_status?.idle || 0}</div>
                   <div className="text-[10px] font-semibold text-muted-foreground">Idle</div>
                 </div>
                 <div className="border-2 border-border bg-soft-sand/30 dark:bg-soft-sand/10 px-2 py-2 text-center">
-                  <div className="font-display text-xl font-extrabold text-dark-espresso dark:text-soft-sand">{equipment.filter((e) => e.status === 'maintenance').length}</div>
+                  <div className="font-display text-xl font-extrabold text-dark-espresso dark:text-soft-sand">{data.equipment_status?.maintenance || 0}</div>
                   <div className="text-[10px] font-semibold text-muted-foreground">Maint.</div>
                 </div>
               </div>

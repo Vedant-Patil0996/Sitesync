@@ -11,5 +11,5 @@ class AuditLog(Base):
     action = Column(Text, nullable=False)       # e.g. material_request.approved
     entity_type = Column(Text)                  # e.g. material_request
     entity_id = Column(BigInteger)
-    metadata = Column(JSONB)
+    event_metadata = Column("metadata", JSONB)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
