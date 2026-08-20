@@ -1,14 +1,22 @@
 'use client';
 
-import { RoleProvider } from '@/components/providers/role-provider';
 import { AppShell } from '@/components/layout/app-shell';
+import { QueryProvider } from '@/providers/query-provider';
+import { AuthProvider } from '@/providers/auth-provider';
+import { AuthGuard } from '@/components/shared/auth-guard';
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <RoleProvider>
-      <AppShell>
-        {children}
-      </AppShell>
-    </RoleProvider>
+    <QueryProvider>
+      <AuthProvider>
+        <AuthGuard>
+          <AppShell>{children}</AppShell>
+        </AuthGuard>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

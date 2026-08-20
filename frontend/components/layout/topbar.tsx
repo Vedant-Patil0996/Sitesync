@@ -4,24 +4,16 @@ import { Menu, Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-import { useRole } from '@/components/providers/role-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { ROLE_LABELS } from '@/lib/types';
 import { notifications } from '@/lib/mock-data';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { Role } from '@/lib/types';
 
 interface TopbarProps {
   onMenuClick: () => void;
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { user, role, switchRole } = useRole();
+  const { user, role, logout } = useAuth();
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
@@ -36,21 +28,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
-        <div className="hidden items-center gap-2 sm:flex">
-          <span className="text-xs font-semibold text-muted-foreground">Role:</span>
-          <Select value={role} onValueChange={(v) => switchRole(v as Role)}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="pm">Project Manager</SelectItem>
-              <SelectItem value="contractor">Contractor</SelectItem>
-              <SelectItem value="finance">Finance</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         <ThemeToggle />
 
         <Button variant="outline" size="icon" className="relative" aria-label="Notifications">
@@ -62,15 +39,21 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           )}
         </Button>
 
-        <div className="flex items-center gap-2 border-2 border-border bg-card px-2 py-1 shadow-brutal-sm">
-          <div className="flex h-8 w-8 items-center justify-center border-2 border-border bg-primary text-sm font-bold text-primary-foreground">
-            {user.full_name.split(' ').map((n) => n[0]).join('')}
+        {user && (
+          <div className="flex items-center gap-2 border-2 border-border bg-card px-2 py-1 shadow-brutal-sm">
+            <div className="flex h-8 w-8 items-center justify-center border-2 border-border bg-primary text-sm font-bold text-primary-foreground">
+              {user.name.split(' ').map((n) => n[0]).join('')}
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-sm font-bold leading-none">{user.name}</div>
+              <div className="text-xs text-muted-foreground font-medium">{role ? ROLE_LABELS[role as keyof typeof ROLE_LABELS] : ''}</div>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <div className="text-sm font-bold leading-none">{user.full_name}</div>
-            <div className="text-xs text-muted-foreground font-medium">{ROLE_LABELS[user.role]}</div>
-          </div>
-        </div>
+        )}
+
+        <Button variant="outline" size="sm" onClick={logout} className="ml-2">
+          Log Out
+        </Button>
       </div>
     </header>
   );

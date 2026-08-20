@@ -8,7 +8,7 @@ import {
   Settings, HardHat, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRole } from '@/components/providers/role-provider';
+import { useAuth } from '@/providers/auth-provider';
 
 interface NavItem {
   label: string;
@@ -41,9 +41,9 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { role } = useRole();
+  const { role } = useAuth();
 
-  const visibleItems = navItems.filter((item) => item.roles.includes(role));
+  const visibleItems = navItems.filter((item) => item.roles.includes(role || ''));
 
   return (
     <>

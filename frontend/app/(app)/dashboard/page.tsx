@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { useRole } from '@/components/providers/role-provider';
+import { useAuth } from '@/providers/auth-provider';
 import {
   sites, projects, alerts, materialRequests, purchaseOrders,
   payments, inventory, equipment, users,
@@ -17,7 +17,9 @@ import {
 import { formatCurrency, formatDate, ROLE_LABELS } from '@/lib/types';
 
 export default function DashboardPage() {
-  const { user, role } = useRole();
+  const { user, role } = useAuth();
+
+  if (!user) return null;
 
   const activeSites = sites.filter((s) => s.status === 'active');
   const openAlerts = alerts.filter((a) => a.status === 'open');
@@ -34,8 +36,8 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title={`Welcome, ${user.full_name.split(' ')[0]}`}
-        description={`You're signed in as ${ROLE_LABELS[role]}. Here's what's happening across your sites.`}
+        title={`Welcome, ${(user.name || 'User').split(' ')[0]}`}
+        description={`You're signed in as ${role ? ROLE_LABELS[role as keyof typeof ROLE_LABELS] : ''}. Here's what's happening across your sites.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
