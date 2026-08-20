@@ -1,10 +1,6 @@
 import asyncio
-import random
-import sys
 import os
 import uuid
-import json
-from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -12,9 +8,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin, dashboard
+from app.api.v1 import (
+    auth, sites, projects, inventory, equipment,
+    procurement, finance, alerts, notifications, admin, dashboard, ai
+)
 from ivr import webhook
-from app.api.v1 import auth, sites, projects, inventory, equipment, procurement, finance, alerts, notifications, admin, dashboard, ai
 from app.events.manager import event_manager
 from app.events.models import make_event
 
@@ -43,12 +41,10 @@ app.include_router(procurement.router,   prefix="/api/v1/procurement",   tags=["
 app.include_router(finance.router,       prefix="/api/v1/finance",       tags=["Finance"])
 app.include_router(alerts.router,        prefix="/api/v1/alerts",        tags=["Alerts"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
-app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
-app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
-app.include_router(webhook.router, prefix="/ivr", tags=["IVR"])
 app.include_router(admin.router,         prefix="/api/v1/admin",         tags=["Admin"])
 app.include_router(dashboard.router,     prefix="/api/v1/dashboard",     tags=["Dashboard"])
 app.include_router(ai.router,            prefix="/api/v1/ai",            tags=["AI"])
+app.include_router(webhook.router,       prefix="/ivr",                  tags=["IVR"])
 
 
 @app.get("/health")
@@ -57,10 +53,6 @@ def health_check():
 
 
 # ── Cron Job: Auto-simulation every 15 minutes ────────────────────────────────
-
-def _project_root() -> str:
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 # Rotating scenario sequence for the cron job
 _CRON_SCENARIOS = [
