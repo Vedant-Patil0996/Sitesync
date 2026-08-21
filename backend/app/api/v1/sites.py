@@ -55,7 +55,9 @@ async def get_sites(
             alert_count=alert_count,
             budget=budget,
             spent=spent,
-            budget_pct=budget_pct
+            budget_pct=budget_pct,
+            latitude=float(site.latitude) if site.latitude else None,
+            longitude=float(site.longitude) if site.longitude else None
         ))
         
     return PaginatedResponse[SiteSchema](

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Annotated, Sequence, TypedDict, Literal, Optional, Callable
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 
@@ -50,8 +50,8 @@ class AgentState(TypedDict):
     visited_nodes: Annotated[Sequence[str], operator.add]
 
 
-# Use Groq's flagship model
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0)
+# Use Gemini Pro
+llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", temperature=0)
 
 
 # ── Node helpers ───────────────────────────────────────────────────────────────
