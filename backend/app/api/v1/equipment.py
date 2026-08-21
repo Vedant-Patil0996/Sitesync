@@ -19,8 +19,9 @@ async def get_equipment(
     db: Session = Depends(get_db), 
     current_user: User = Depends(require_role("admin", "pm", "finance"))
 ):
-    query = db.query(Equipment, Site)\
+    query = db.query(Equipment, Site, Task.name.label("task_name"))\
         .join(Site, Equipment.site_id == Site.id)\
+        .outerjoin(Task, Equipment.allocated_to_task_id == Task.id)\
         .filter(Site.company_id == current_user.company_id)
     if current_user.role in ("pm", "contractor"):
         from app.models.site import SiteAssignment
@@ -30,13 +31,7 @@ async def get_equipment(
     equipment_db = query.offset(skip).limit(limit).all()
     
     items = []
-    for eq, site in equipment_db:
-        task_name = None
-        if eq.allocated_to_task_id:
-            task = db.query(Task).filter(Task.id == eq.allocated_to_task_id).first()
-            if task:
-                task_name = task.name
-
+    for eq, site, task_name in equipment_db:
         items.append(EquipmentSchema(
             id=eq.id,
             name=eq.name,

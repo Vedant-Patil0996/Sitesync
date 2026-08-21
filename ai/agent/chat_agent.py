@@ -16,7 +16,7 @@ import operator
 from typing import Annotated, Sequence, TypedDict, Optional
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 
@@ -68,7 +68,7 @@ ALL_TOOLS = [
 
 # ── LLM ──────────────────────────────────────────────────────────────────────
 
-_llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", temperature=0)
+_llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0, max_retries=5)
 _llm_with_tools = _llm.bind_tools(ALL_TOOLS)
 
 MAX_TOOL_ROUNDS = 5

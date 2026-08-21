@@ -116,6 +116,10 @@ def create_alert_and_notify(
 
     notifications_created = []
 
+    source_tag = "[CRON MONITORED]" if (run_id and (run_id.startswith("cron") or run_id.startswith("auto"))) else \
+                 "[QR SCAN EVENT]" if (run_id and (run_id.startswith("qr") or run_id.startswith("disc"))) else \
+                 "[AI INVESTIGATION]"
+
     for user in users:
         role_rules = allowed_severities.get(user.role, [])
         if severity in role_rules:
@@ -123,7 +127,7 @@ def create_alert_and_notify(
                 user_id=user.id,
                 alert_id=alert.id,
                 related_entity_type="ai_run",
-                title=f"🤖 AI Alert [{severity.upper()}]: {title[:80]}",
+                title=f"🤖 {source_tag} [{severity.upper()}]: {title[:80]}",
                 message=summary[:300],
                 status="created",
             )

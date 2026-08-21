@@ -182,3 +182,230 @@ async def get_transactions(db: Session = Depends(get_db), current_user: User = D
         query = query.filter(Site.id.in_(db.query(SiteAssignment.site_id).filter(SiteAssignment.user_id == current_user.id)))
     rows = query.order_by(InventoryTransaction.date.desc()).limit(200).all()
     return [InventoryTransactionSchema(id=tx.id, type=tx.type, material_name=mat.name, unit=mat.unit, quantity=float(tx.quantity), performed_by_name=user.name, note=tx.reference, created_at=tx.date) for tx, mat, user, site in rows]
+
+
+# ───────────────────────────── QR BATCH ENDPOINTS ──────────────────────────────
+
+from app.models.inventory import MaterialBatch, DeliveryDiscrepancy
+from app.models.vendor import Vendor
+import csv, io
+from fastapi.responses import StreamingResponse
+
+
+@router.get("/batches/export")
+async def export_batches(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "finance", "contractor"))
+):
+    """Export all material batches as CSV."""
+    query = db.query(MaterialBatch, Material, Site)\
+        .join(Material, MaterialBatch.material_id == Material.id)\
+        .join(Site, MaterialBatch.site_id == Site.id)\
+        .filter(Site.company_id == current_user.company_id)\
+        .order_by(MaterialBatch.created_at.desc())
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Batch Code", "Material", "Site", "Unit", "Original Qty",
+                     "Current Qty", "Status", "Received At", "Notes"])
+    for batch, mat, site in query.all():
+        writer.writerow([
+            batch.batch_code, mat.name, site.name, batch.unit,
+            float(batch.original_qty), float(batch.current_qty),
+            batch.status,
+            batch.received_at.isoformat() if batch.received_at else "",
+            batch.notes or ""
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="batches.csv"'}
+    )
+
+
+@router.get("/batches")
+async def list_batches(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "finance", "contractor"))
+):
+    """List all material batches (company-scoped)."""
+    query = db.query(MaterialBatch, Material, Site)\
+        .join(Material, MaterialBatch.material_id == Material.id)\
+        .join(Site, MaterialBatch.site_id == Site.id)\
+        .filter(Site.company_id == current_user.company_id)\
+        .order_by(MaterialBatch.created_at.desc())
+
+    results = []
+    for batch, mat, site in query.all():
+        pct = 0.0
+        if float(batch.original_qty) > 0:
+            pct = round(float(batch.current_qty) / float(batch.original_qty) * 100, 1)
+        results.append({
+            "id": batch.id,
+            "batch_code": batch.batch_code,
+            "material_name": mat.name,
+            "material_id": batch.material_id,
+            "site_name": site.name,
+            "site_id": batch.site_id,
+            "unit": batch.unit,
+            "original_qty": float(batch.original_qty),
+            "current_qty": float(batch.current_qty),
+            "pct_remaining": pct,
+            "status": batch.status,
+            "received_at": batch.received_at.isoformat() if batch.received_at else None,
+            "created_at": batch.created_at.isoformat() if batch.created_at else None,
+        })
+    return results
+
+
+@router.post("/batches")
+async def create_batch(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Create a new material batch and generate its QR batch code."""
+    from app.services.material_service import create_batch
+    batch = create_batch(
+        db, material_id=payload["material_id"], site_id=payload["site_id"],
+        qty=payload["qty"], user=current_user,
+        supplier_id=payload.get("supplier_id"), notes=payload.get("notes")
+    )
+    return {"batch_code": batch.batch_code, "id": batch.id, "status": batch.status}
+
+
+@router.post("/scan")
+async def scan_batch(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Decode a QR scan payload and return the Material Passport."""
+    from app.services.material_service import get_batch_passport
+    # QR payload: {"type": "SITESYNC_MATERIAL", "v": 1, "batch_id": "BAT-2026-XXXXX"}
+    batch_code = payload.get("batch_id") or payload.get("batch_code")
+    if not batch_code:
+        raise HTTPException(status_code=400, detail="QR payload missing batch_id")
+    return get_batch_passport(db, batch_code, current_user)
+
+
+@router.get("/batches/{batch_code}/timeline")
+async def get_batch_timeline(
+    batch_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "finance", "contractor"))
+):
+    from app.services.material_service import get_batch_passport
+    return get_batch_passport(db, batch_code, current_user)
+
+
+@router.post("/receive")
+async def receive_batch_endpoint(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Record actual received quantity (triggers discrepancy if mismatch)."""
+    from app.services.material_service import receive_batch
+    return receive_batch(
+        db, batch_code=payload["batch_code"],
+        actual_qty=payload["actual_qty"],
+        expected_qty=payload["expected_qty"],
+        user=current_user
+    )
+
+
+@router.post("/consume")
+async def consume_batch_endpoint(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Consume material from a batch."""
+    from app.services.material_service import consume_batch
+    return consume_batch(
+        db, batch_code=payload["batch_code"],
+        qty=payload["qty"],
+        user=current_user,
+        reason=payload.get("reason"),
+        activity=payload.get("activity")
+    )
+
+
+@router.post("/transfer-batch")
+async def transfer_batch_endpoint(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Initiate a batch transfer to another site."""
+    from app.services.material_service import transfer_batch
+    return transfer_batch(
+        db, batch_code=payload["batch_code"],
+        qty=payload["qty"],
+        dest_site_id=payload["dest_site_id"],
+        user=current_user,
+        reference=payload.get("reference")
+    )
+
+
+@router.post("/damage")
+async def damage_batch_endpoint(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Record damaged material from a batch."""
+    from app.services.material_service import damage_batch
+    return damage_batch(
+        db, batch_code=payload["batch_code"],
+        qty=payload["qty"],
+        user=current_user,
+        reason=payload.get("reason")
+    )
+
+
+@router.post("/return-batch")
+async def return_batch_endpoint(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm", "contractor"))
+):
+    """Return material from a batch."""
+    from app.services.material_service import return_batch
+    return return_batch(
+        db, batch_code=payload["batch_code"],
+        qty=payload["qty"],
+        user=current_user,
+        reason=payload.get("reason")
+    )
+
+
+@router.get("/discrepancies")
+async def list_discrepancies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "pm"))
+):
+    """List all delivery discrepancies (admin/pm only)."""
+    rows = db.query(DeliveryDiscrepancy, MaterialBatch, Material, User, Site)\
+        .join(MaterialBatch, DeliveryDiscrepancy.batch_id == MaterialBatch.id)\
+        .join(Material, MaterialBatch.material_id == Material.id)\
+        .join(User, DeliveryDiscrepancy.reported_by == User.id)\
+        .join(Site, DeliveryDiscrepancy.site_id == Site.id)\
+        .filter(Site.company_id == current_user.company_id)\
+        .order_by(DeliveryDiscrepancy.created_at.desc()).all()
+    return [
+        {
+            "id": disc.id,
+            "batch_code": batch.batch_code,
+            "material_name": mat.name,
+            "site_name": site.name,
+            "expected_qty": float(disc.expected_qty),
+            "actual_qty": float(disc.actual_qty),
+            "difference": float(disc.difference),
+            "reported_by": user.name,
+            "created_at": disc.created_at.isoformat() if disc.created_at else None,
+        }
+        for disc, batch, mat, user, site in rows
+    ]

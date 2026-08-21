@@ -37,20 +37,40 @@ async def get_finance_summary(db: Session = Depends(get_db), current_user: User 
             "date": p.released_at.isoformat() if p.released_at else p.created_at.isoformat()
         })
         
-    # Sites budget
+    # Sites budget (batched)
     sites_db = db.query(Site).filter(Site.company_id == current_user.company_id).all()
+    site_ids_list = [s.id for s in sites_db]
+
+    site_budgets_map = dict(
+        db.query(Project.site_id, func.coalesce(func.sum(Project.budget_total), 0))
+        .filter(Project.site_id.in_(site_ids_list))
+        .group_by(Project.site_id).all()
+    ) if site_ids_list else {}
+
+    site_expenses_map = dict(
+        db.query(Expense.site_id, func.coalesce(func.sum(Expense.amount), 0))
+        .filter(Expense.site_id.in_(site_ids_list))
+        .group_by(Expense.site_id).all()
+    ) if site_ids_list else {}
+
+    site_payments_map = dict(
+        db.query(MaterialRequest.site_id, func.coalesce(func.sum(Payment.amount), 0))
+        .join(PurchaseOrder, Payment.po_id == PurchaseOrder.id)
+        .join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id)
+        .filter(MaterialRequest.site_id.in_(site_ids_list), Payment.status == "released")
+        .group_by(MaterialRequest.site_id).all()
+    ) if site_ids_list else {}
+
     sites_budget = []
     for s in sites_db:
-        # Get total budget from projects
-        site_budget = db.query(func.sum(Project.budget_total)).filter(Project.site_id == s.id).scalar() or 0
-        
-        site_expenses = db.query(func.sum(Expense.amount)).filter(Expense.site_id == s.id).scalar() or 0
-        site_payments = db.query(func.sum(Payment.amount)).join(PurchaseOrder, Payment.po_id == PurchaseOrder.id).join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id).filter(MaterialRequest.site_id == s.id, Payment.status == "released").scalar() or 0
+        b = float(site_budgets_map.get(s.id, 0))
+        e = float(site_expenses_map.get(s.id, 0))
+        p = float(site_payments_map.get(s.id, 0))
         sites_budget.append({
             "site_id": s.id,
             "site_name": s.name,
-            "budget": float(site_budget),
-            "spent": float(site_expenses) + float(site_payments)
+            "budget": b,
+            "spent": e + p
         })
         
     return FinanceSummarySchema(

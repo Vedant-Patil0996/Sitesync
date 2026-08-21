@@ -33,17 +33,39 @@ async def get_sites(
     total = query.count()
     sites_db = query.offset(skip).limit(limit).all()
     
+    if not sites_db:
+        return PaginatedResponse[SiteSchema](items=[], total=0, page=1, size=limit, pages=0)
+
+    site_ids = [s.id for s in sites_db]
+
+    # Batch counts & sums across all sites in 1 roundtrip per table
+    project_counts = dict(
+        db.query(Project.site_id, func.count(Project.id))
+        .filter(Project.site_id.in_(site_ids))
+        .group_by(Project.site_id).all()
+    )
+    alert_counts = dict(
+        db.query(Alert.site_id, func.count(Alert.id))
+        .filter(Alert.site_id.in_(site_ids), Alert.status == 'open')
+        .group_by(Alert.site_id).all()
+    )
+    budgets = dict(
+        db.query(Project.site_id, func.coalesce(func.sum(Project.budget_allocated), 0))
+        .filter(Project.site_id.in_(site_ids))
+        .group_by(Project.site_id).all()
+    )
+    spents = dict(
+        db.query(Expense.site_id, func.coalesce(func.sum(Expense.amount), 0))
+        .filter(Expense.site_id.in_(site_ids))
+        .group_by(Expense.site_id).all()
+    )
+
     items = []
     for site in sites_db:
-        project_count = db.query(Project).filter(Project.site_id == site.id).count()
-        alert_count = db.query(Alert).filter(Alert.site_id == site.id, Alert.status == 'open').count()
-        
-        projects = db.query(Project).filter(Project.site_id == site.id).all()
-        budget = sum(float(p.budget_allocated) for p in projects)
-        
-        expenses = db.query(Expense).filter(Expense.site_id == site.id).all()
-        spent = sum(float(e.amount) for e in expenses)
-        
+        project_count = project_counts.get(site.id, 0)
+        alert_count = alert_counts.get(site.id, 0)
+        budget = float(budgets.get(site.id, 0))
+        spent = float(spents.get(site.id, 0))
         budget_pct = int((spent / budget * 100)) if budget > 0 else 0
         
         items.append(SiteSchema(

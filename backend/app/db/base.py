@@ -5,7 +5,7 @@ from app.models.company import Company          # noqa: F401
 from app.models.user import User                # noqa: F401
 from app.models.site import Site, SiteAssignment  # noqa: F401
 from app.models.project import Project, Task, Milestone  # noqa: F401
-from app.models.inventory import Material, Inventory, InventoryTransaction  # noqa: F401
+from app.models.inventory import Material, Inventory, InventoryTransaction, MaterialBatch, DeliveryDiscrepancy  # noqa: F401
 from app.models.equipment import Equipment, EquipmentLog, LaborLog  # noqa: F401
 from app.models.vendor import Vendor            # noqa: F401
 from app.models.procurement import (            # noqa: F401
