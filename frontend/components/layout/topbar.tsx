@@ -23,7 +23,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     async function fetchNotifications() {
       if (!user) return;
       try {
-        const data = await apiFetch<any[]>('/api/v1/notifications');
+        const data = await apiFetch<any[]>('/api/v1/notifications/');
         setNotifications(data);
       } catch (error) {
         console.error('Failed to load notifications', error);
