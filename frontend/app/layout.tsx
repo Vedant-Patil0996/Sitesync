@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${ebGaramond.variable} font-sans`}>
+      <body className={`${inter.variable} ${ebGaramond.variable} font-sans`} suppressHydrationWarning>
         <ThemeProvider>
           {children}
         </ThemeProvider>
