@@ -26,9 +26,11 @@ class WhatsAppChannel(NotificationChannel):
         test_number = os.environ.get("WHATSAPP_TEST_NUMBER")
         target_number = test_number if test_number else user.phone
         
-        # Whapi expects the phone number without the '+' sign
-        if target_number.startswith('+'):
-            target_number = target_number[1:]
+        # Clean number to digits only and add country code if missing
+        import re
+        target_number = re.sub(r'[^\d]', '', str(target_number))
+        if len(target_number) == 10:
+            target_number = f"91{target_number}"
 
         payload = {
             "to": target_number,
@@ -45,7 +47,7 @@ class WhatsAppChannel(NotificationChannel):
             if not response.ok:
                 print(f"[WhatsApp] API error {response.status_code}: {response.text}", flush=True)
             else:
-                print(f"[WhatsApp] Message sent successfully to {user.phone}", flush=True)
+                print(f"[WhatsApp] Message sent successfully to {target_number} (recipient user: {user.phone})", flush=True)
         except Exception as e:
             print(f"[WhatsApp] Request failed: {e}", flush=True)
 

@@ -12,6 +12,12 @@ print(f"Token: {token[:5]}...{token[-5:]}" if token else "No token")
 print(f"Base URL: {base_url}")
 print(f"Test Number: {test_number}")
 
+import re
+if test_number:
+    test_number = re.sub(r'[^\d]', '', str(test_number))
+    if len(test_number) == 10:
+        test_number = f"91{test_number}"
+
 endpoint = f"{base_url}/messages/text"
 
 payload = {

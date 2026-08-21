@@ -1,4 +1,10 @@
 import os
+import sys
+from dotenv import load_dotenv
+load_dotenv()
+
+sys.stdout.reconfigure(encoding='utf-8')
+
 from app.db import base
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal

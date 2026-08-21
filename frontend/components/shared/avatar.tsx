@@ -86,7 +86,6 @@ export function Avatar({ isActive, onClose, textToSpeak }: AvatarProps) {
                 muted // Mute the video itself since speech synthesis handles audio
                 playsInline
                 className="w-full h-full object-cover"
-                poster="/avatar-poster.jpg"
             />
             
             {isSpeaking && (
