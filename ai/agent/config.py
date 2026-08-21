@@ -2,6 +2,7 @@ import json
 from langchain_core.tools import tool
 from typing import Optional
 from ai.tools import stock, budget, rag, equipment, project, procurement
+from ai.core.config import supabase
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NULL-HANDLING RULE — injected into every agent system prompt.
@@ -19,6 +20,28 @@ NULL_HANDLING_RULE = (
     "(e.g. [equipment: 1], [purchase_orders: 42]).\n"
     "- If you cannot find data after 3-4 tool calls, stop and report what you found."
 )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DISCOVERY TOOLS — let the agent look up real numeric IDs from names
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def list_sites() -> str:
+    """List all sites with their numeric IDs and names. ALWAYS call this first when the user mentions a site by name (e.g. 'Site 1', 'Northwood') so you can get the correct numeric site_id to use in other tools."""
+    try:
+        resp = supabase.table('sites').select('id, name, status').order('name').execute()
+        return json.dumps(resp.data if resp.data else [])
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@tool
+def list_materials() -> str:
+    """List all materials with their numeric IDs and names. Call this when the user mentions a material by name (e.g. 'cement', 'steel') so you can get the correct numeric material_id."""
+    try:
+        resp = supabase.table('materials').select('id, name, unit').order('name').execute()
+        return json.dumps(resp.data if resp.data else [])
+    except Exception as e:
+        return json.dumps({"error": str(e)})
 
 @tool
 def search_historical_records(query: str, company_id: Optional[str] = None, site_id: Optional[str] = None, source_table: Optional[str] = None, vendor_id: Optional[str] = None) -> list:

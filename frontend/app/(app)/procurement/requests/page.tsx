@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ShoppingCart, Check, X, Clock, FileText, Sparkles, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Check, X, Clock, FileText, Sparkles, AlertCircle, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -157,7 +157,7 @@ export default function MaterialRequestsPage() {
                   <CardHeader>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <CardTitle className="text-lg">{req.material_name}</CardTitle>
                           <Badge variant={
                             req.priority === 'urgent' ? 'destructive' :
@@ -166,6 +166,11 @@ export default function MaterialRequestsPage() {
                           } className="text-[10px] uppercase font-bold">
                             {req.priority || 'normal'} priority
                           </Badge>
+                          {req.justification && (req.justification.toLowerCase().includes('voice') || req.justification.toLowerCase().includes('ivr')) && (
+                            <Badge className="bg-[#FFEAA7] text-black border-2 border-black font-bold text-[10px] flex items-center gap-1 shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-[#FFEAA7]">
+                              <Phone className="h-3 w-3" /> Voice IVR
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground font-medium mt-1">
                           {req.quantity} {req.unit} • {req.site_name} • Requested by <span className="font-bold text-foreground">{req.requested_by_name}</span> on {formatDate(req.created_at)}

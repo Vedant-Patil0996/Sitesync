@@ -1,7 +1,7 @@
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.site import Site, SiteAssignment
-from app.models.inventory import Material
+from app.models.inventory import Material, Inventory
 
 
 def _user_to_dict(user, db):
@@ -104,12 +104,20 @@ def get_caller_for_intent(intent: str, phone_number: str):
 
 
 def get_site_id_by_name(site_name, site_ids):
-    """Find site by name (fuzzy). Falls back to first assigned site_id."""
+    """Find site by name (fuzzy). Prioritizes sites that have inventory entries."""
     if not site_name:
         return site_ids[0] if site_ids else None
     db = SessionLocal()
     try:
-        site = db.query(Site).filter(Site.name.ilike(f"%{site_name}%")).first()
+        # First try: Find a site matching the name that actually has inventory entries
+        site = db.query(Site).join(Inventory, Inventory.site_id == Site.id).filter(
+            Site.name.ilike(f"%{site_name}%")
+        ).first()
+        
+        # Second try: Fallback to any site matching the name
+        if not site:
+            site = db.query(Site).filter(Site.name.ilike(f"%{site_name}%")).first()
+            
         if site:
             return str(site.id)
         return site_ids[0] if site_ids else None
@@ -121,12 +129,20 @@ def get_site_id_by_name(site_name, site_ids):
 
 
 def get_material_id_by_name(mat_name):
-    """Find material by name (fuzzy match)."""
+    """Find material by name (fuzzy match). Prioritizes materials that have inventory entries."""
     if not mat_name:
         return None
     db = SessionLocal()
     try:
-        mat = db.query(Material).filter(Material.name.ilike(f"%{mat_name}%")).first()
+        # First try: Find a material matching the name that actually has inventory entries
+        mat = db.query(Material).join(Inventory, Inventory.material_id == Material.id).filter(
+            Material.name.ilike(f"%{mat_name}%")
+        ).first()
+        
+        # Second try: Fallback to any material matching the name
+        if not mat:
+            mat = db.query(Material).filter(Material.name.ilike(f"%{mat_name}%")).first()
+            
         if mat:
             return str(mat.id)
         return None
