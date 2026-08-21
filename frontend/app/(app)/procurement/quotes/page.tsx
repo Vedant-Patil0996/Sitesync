@@ -63,7 +63,7 @@ export default function VendorQuotesPage() {
           {/* Quote comparison */}
           <div className="space-y-4">
             <h2 className="font-display text-xl font-extrabold">Quote Comparisons</h2>
-            {requests.filter((mr) => mr.pm_status === 'approved').map((req) => {
+            {requests.filter((mr) => mr.pm_status === 'approved' && mr.finance_status === 'approved').map((req) => {
               const quotes = req.quotes || [];
               if (quotes.length === 0) return null;
 
@@ -117,7 +117,7 @@ export default function VendorQuotesPage() {
                 </Card>
               );
             })}
-            {requests.filter((mr) => mr.pm_status === 'approved' && mr.quotes?.length > 0).length === 0 && (
+            {requests.filter((mr) => mr.pm_status === 'approved' && mr.finance_status === 'approved' && mr.quotes?.length > 0).length === 0 && (
               <div className="p-8 text-center text-muted-foreground">No approved requests with quotes found.</div>
             )}
           </div>

@@ -25,7 +25,8 @@ async def get_requests(
         .join(Material, MaterialRequest.material_id == Material.id)\
         .join(Site, MaterialRequest.site_id == Site.id)\
         .join(User, MaterialRequest.requested_by == User.id)\
-        .filter(Site.company_id == current_user.company_id)
+        .filter(Site.company_id == current_user.company_id)\
+        .order_by(MaterialRequest.created_at.desc())
         
     total = query.count()
     requests_db = query.offset(skip).limit(limit).all()
@@ -97,7 +98,7 @@ async def get_requests(
 async def create_request(
     request: MaterialRequestCreateSchema,
     db: Session = Depends(get_db), 
-    current_user: User = Depends(require_role("pm", "contractor"))
+    current_user: User = Depends(require_role("contractor"))
 ):
     from datetime import datetime
     require_site_access(db, current_user, request.site_id, write=True)

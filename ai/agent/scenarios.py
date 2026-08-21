@@ -118,4 +118,17 @@ SCENARIOS = [
             "timestamp": "{timestamp}"
         }
     },
+    {
+        "id": "schedule_risk_scan",
+        "label": "Proactive Schedule Risk Scan",
+        "description": "Proactively scans all active project tasks, milestones, and dependencies for delay risks. Triggers Project Agent.",
+        "severity": "info",
+        "icon": "🤖",
+        "tags": ["project", "schedule", "proactive"],
+        "payload_template": {
+            "log_type": "proactive_schedule_scan",
+            "site_id": "{site_id}",
+            "timestamp": "{timestamp}"
+        }
+    },
 ]

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Calculator, Calendar, AlertCircle, Link as LinkIcon, DollarSign, Image as ImageIcon } from 'lucide-react';
+import { Plus, Calculator, Calendar, AlertCircle, IndianRupee } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,6 @@ export function MaterialRequestDialog({ siteId, siteName, onSuccess }: MaterialR
   const [requiredDate, setRequiredDate] = React.useState<string>('');
   const [quantity, setQuantity] = React.useState<string>('');
   const [unitCost, setUnitCost] = React.useState<string>('');
-  const [attachmentUrl, setAttachmentUrl] = React.useState<string>('');
   const [justification, setJustification] = React.useState<string>('');
 
   const queryClient = useQueryClient();
@@ -67,7 +66,6 @@ export function MaterialRequestDialog({ siteId, siteName, onSuccess }: MaterialR
     setRequiredDate('');
     setQuantity('');
     setUnitCost('');
-    setAttachmentUrl('');
     setJustification('');
     if (!siteId) setSelectedSiteId('');
   };
@@ -83,12 +81,11 @@ export function MaterialRequestDialog({ siteId, siteName, onSuccess }: MaterialR
       priority,
       required_date: requiredDate || undefined,
       estimated_unit_cost: unitCost ? parseFloat(unitCost) : undefined,
-      attachment_url: attachmentUrl || undefined,
       justification: justification || undefined,
     });
   };
 
-  const selectedMaterial = materials?.find(m => String(m.id) === selectedMaterialId);
+  const selectedMaterial = materials?.find((m: any) => String(m.id) === selectedMaterialId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -199,7 +196,7 @@ export function MaterialRequestDialog({ siteId, siteName, onSuccess }: MaterialR
             <div className="space-y-2">
               <Label htmlFor="unitCost">Estimated Unit Cost (₹)</Label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <IndianRupee className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="unitCost"
                   type="number"
@@ -221,39 +218,13 @@ export function MaterialRequestDialog({ siteId, siteName, onSuccess }: MaterialR
               <div>
                 <span className="text-xs font-bold text-muted-foreground block">Calculated Requirement Total</span>
                 <span className="text-xs text-muted-foreground">
-                  {parsedQty} × ₹{parsedUnitCost.toLocaleString()}
+                  {parsedQty} × ₹{parsedUnitCost.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
             <div className="font-display font-extrabold text-2xl text-primary">
               {formatCurrency(totalCost)}
             </div>
-          </div>
-
-          {/* Cloudinary / Image Attachment URL */}
-          <div className="space-y-2">
-            <Label htmlFor="attachment">Attachment / Cloudinary Spec Image URL</Label>
-            <div className="relative">
-              <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="attachment"
-                type="url"
-                placeholder="https://res.cloudinary.com/... or image link"
-                value={attachmentUrl}
-                onChange={(e) => setAttachmentUrl(e.target.value)}
-                className="pl-10 text-xs"
-              />
-            </div>
-            {attachmentUrl && (
-              <div className="mt-2 relative h-20 w-full border-2 border-border bg-black/5 overflow-hidden">
-                <img
-                  src={attachmentUrl}
-                  alt="Attachment Preview"
-                  className="h-full w-full object-cover"
-                  onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                />
-              </div>
-            )}
           </div>
 
           {/* Justification */}

@@ -18,6 +18,13 @@ class SiteSchema(BaseModel):
     spent: float
     budget_pct: int
 
+class SiteCreateSchema(BaseModel):
+    name: str
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: str = "active"
+
 class SiteContractorSchema(BaseModel):
     id: int
     name: str

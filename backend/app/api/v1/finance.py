@@ -67,16 +67,21 @@ async def get_purchase_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db), 
-    current_user: User = Depends(require_role("admin", "finance"))
+    current_user: User = Depends(require_role("admin", "finance", "pm", "contractor"))
 ):
+    from app.models.site import Site, SiteAssignment
     query = db.query(PurchaseOrder, Vendor, MaterialRequest, Material, User)\
         .join(Vendor, PurchaseOrder.vendor_id == Vendor.id)\
         .join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id)\
         .join(Material, MaterialRequest.material_id == Material.id)\
         .outerjoin(User, PurchaseOrder.approved_by == User.id)\
-        .join(__import__('app.models.site', fromlist=['Site']).Site, MaterialRequest.site_id == __import__('app.models.site', fromlist=['Site']).Site.id)\
-        .filter(__import__('app.models.site', fromlist=['Site']).Site.company_id == current_user.company_id)
+        .join(Site, MaterialRequest.site_id == Site.id)\
+        .filter(Site.company_id == current_user.company_id)
         
+    if current_user.role in ("pm", "contractor"):
+        query = query.filter(Site.id.in_(db.query(SiteAssignment.site_id).filter(SiteAssignment.user_id == current_user.id)))
+
+    query = query.order_by(PurchaseOrder.order_date.desc())
     total = query.count()
     pos_db = query.offset(skip).limit(limit).all()
     
@@ -241,17 +246,51 @@ async def release_payment(payment_id: int, db: Session = Depends(get_db), curren
 
 @router.post("/purchase-orders/{po_id}/delivery")
 async def confirm_delivery(po_id: int, payload: DeliveryConfirmSchema, db: Session = Depends(get_db), current_user: User = Depends(require_role("admin", "pm", "contractor"))):
-    row = db.query(PurchaseOrder, MaterialRequest).join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id).join(__import__('app.models.site', fromlist=['Site']).Site, MaterialRequest.site_id == __import__('app.models.site', fromlist=['Site']).Site.id).filter(PurchaseOrder.id == po_id, __import__('app.models.site', fromlist=['Site']).Site.company_id == current_user.company_id).first()
+    from decimal import Decimal
+    from app.models.site import Site
+    from app.models.inventory import Inventory, Material, InventoryTransaction
+
+    row = db.query(PurchaseOrder, MaterialRequest).join(MaterialRequest, PurchaseOrder.request_id == MaterialRequest.id).join(Site, MaterialRequest.site_id == Site.id).filter(PurchaseOrder.id == po_id, Site.company_id == current_user.company_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Purchase order not found")
     po, request = row
     require_site_access(db, current_user, request.site_id, write=True)
     if po.status != "approved" or payload.quantity <= 0 or payload.quantity > float(po.quantity):
         raise HTTPException(status_code=409, detail="Invalid delivery")
+    
     delivery = Delivery(po_id=po.id, quantity=payload.quantity, status="delivered", confirmed_by=current_user.id, delivery_date=func.now())
     po.status = "delivered"
     db.add(delivery)
     db.flush()
-    audit(db, current_user, "delivery.confirmed", "delivery", delivery.id, {"po_id": po.id, "quantity": payload.quantity})
+
+    del_qty = Decimal(str(payload.quantity))
+    
+    # ── Update site inventory ──────────────────────────────────────────
+    inv = db.query(Inventory).filter(Inventory.site_id == request.site_id, Inventory.material_id == request.material_id).first()
+    if not inv:
+        material = db.query(Material).filter(Material.id == request.material_id).first()
+        inv = Inventory(
+            site_id=request.site_id,
+            material_id=request.material_id,
+            quantity=del_qty,
+            reorder_level=material.default_reorder_level if material else Decimal("0")
+        )
+        db.add(inv)
+    else:
+        inv.quantity += del_qty
+
+    # ── Record inventory transaction IN ────────────────────────────────
+    inv_tx = InventoryTransaction(
+        site_id=request.site_id,
+        material_id=request.material_id,
+        user_id=current_user.id,
+        type="IN",
+        quantity=del_qty,
+        reference=f"PO #{po.id} Delivery Receipt"
+    )
+    db.add(inv_tx)
+    db.flush()
+
+    audit(db, current_user, "delivery.confirmed", "delivery", delivery.id, {"po_id": po.id, "quantity": payload.quantity, "inventory_transaction_id": inv_tx.id})
     db.commit()
     return {"status": "delivered", "delivery_id": delivery.id}

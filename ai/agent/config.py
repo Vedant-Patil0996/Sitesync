@@ -102,6 +102,16 @@ def calculate_delay_impact(task_id: str, delayed_days: int) -> str:
     return json.dumps(project.calculate_delay_impact(task_id, delayed_days))
 
 @tool
+def scan_overdue_tasks(site_id: str) -> str:
+    """Proactively scans all active projects at a site to find overdue or delayed tasks. Returns details about each delayed task including dependent task count."""
+    return json.dumps(project.scan_overdue_tasks(site_id))
+
+@tool
+def get_project_schedule_risk(project_id: str) -> str:
+    """Retrieves schedule health metrics for a specific project based on tasks, milestones, and dependencies. Returns counts of overdue tasks, missed milestones, and upcoming tasks."""
+    return json.dumps(project.get_project_schedule_risk(project_id))
+
+@tool
 def evaluate_vendor_reliability(vendor_id: str) -> str:
     """Evaluate a vendor's historical performance from real PO and delivery data. vendor_id must be a numeric ID from the vendors table."""
     return json.dumps(procurement.evaluate_vendor_reliability(vendor_id))
@@ -174,14 +184,19 @@ WORKER_CONFIG = {
         "tools": [
             get_task_dependencies,
             calculate_delay_impact,
+            scan_overdue_tasks,
+            get_project_schedule_risk,
             search_historical_records
         ],
         "system_prompt": (
-            "You are the Project Intelligence Agent. Your job is to handle task delays and operational roadblocks.\n"
-            "Identify downstream task dependencies, calculate the cost of delay, and recommend corrective scheduling actions.\n"
-            "Gather necessary info with 2-3 tool calls maximum, then immediately output your final text findings.\n"
+            "You are the Project Intelligence Agent. Your job is to handle task delays, milestones, and schedule risk.\n"
+            "When performing a schedule scan or investigating a task delay:\n"
+            "STEP 1: Run scan_overdue_tasks for the site, or run get_project_schedule_risk for the project if one is given.\n"
+            "STEP 2: For any delayed task, call get_task_dependencies and calculate_delay_impact to assess cascading effects.\n"
+            "STEP 3: Gather necessary info with 2-3 tool calls maximum, then generate your explainable report and recommendations.\n"
+            "Cite downstream tasks/milestones affected, estimate financial/time impact, and recommend next steps.\n"
             "CRITICAL: Every claim you make MUST cite the source database record using this format: [source_table: record_id] "
-            "(e.g. [tasks: 5]). You must extract these IDs from the tool responses."
+            "(e.g. [tasks: 5] or [projects: 2]). You must extract these IDs from the tool responses."
             + NULL_HANDLING_RULE
         )
     },

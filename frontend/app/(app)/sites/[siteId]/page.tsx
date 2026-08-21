@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Building2, MapPin, ArrowLeft, Package, Wrench, FolderKanban,
-  AlertTriangle, Wallet, Users,
+  AlertTriangle, Wallet, Users, MinusCircle, Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,26 +14,74 @@ import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { formatCurrency, formatDate } from '@/lib/types';
 import { apiFetch } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function SiteDetailPage() {
   const params = useParams();
   const siteId = params.siteId as string;
+  const { role } = useAuth();
   const [siteData, setSiteData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchSite() {
-      try {
-        const data = await apiFetch<any>(`/api/v1/sites/${siteId}`);
-        setSiteData(data);
-      } catch (error) {
-        console.error('Failed to load site details', error);
-      } finally {
-        setLoading(false);
-      }
+  // Consumption Modal State
+  const [consumeOpen, setConsumeOpen] = useState(false);
+  const [consumeMaterialId, setConsumeMaterialId] = useState('');
+  const [consumeQty, setConsumeQty] = useState('');
+  const [consumeRef, setConsumeRef] = useState('');
+  const [consuming, setConsuming] = useState(false);
+
+  const fetchSite = async () => {
+    try {
+      const data = await apiFetch<any>(`/api/v1/sites/${siteId}`);
+      setSiteData(data);
+    } catch (error) {
+      console.error('Failed to load site details', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchSite();
   }, [siteId]);
+
+  const handleConsumeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!consumeMaterialId || !consumeQty || parseFloat(consumeQty) <= 0) {
+      toast.error('Please enter a valid material and quantity');
+      return;
+    }
+
+    setConsuming(true);
+    try {
+      await apiFetch('/api/v1/inventory/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          site_id: Number(siteId),
+          material_id: Number(consumeMaterialId),
+          type: 'OUT',
+          quantity: parseFloat(consumeQty),
+          reference: consumeRef.trim() || 'Site work consumption',
+        }),
+      });
+      toast.success('Material consumption recorded');
+      setConsumeOpen(false);
+      setConsumeMaterialId('');
+      setConsumeQty('');
+      setConsumeRef('');
+      await fetchSite();
+    } catch (error: any) {
+      console.error('Failed to record consumption', error);
+      toast.error(error.message || 'Failed to record consumption');
+    } finally {
+      setConsuming(false);
+    }
+  };
 
   if (loading) {
     return <div className="p-8">Loading site details...</div>;
@@ -58,15 +106,15 @@ export default function SiteDetailPage() {
 
       <PageHeader
         title={siteData.name}
-        description={siteData.location_text}
+        description={siteData.location || 'No location set'}
         action={<StatusBadge status={siteData.status} />}
       />
 
-      {/* Summary cards */}
+      {/* Summary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Projects</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Active Projects</CardTitle>
             <FolderKanban className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -75,7 +123,7 @@ export default function SiteDetailPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Materials</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Materials in Stock</CardTitle>
             <Package className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -120,7 +168,7 @@ export default function SiteDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Map placeholder */}
+        {/* Location Map Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" /> Location</CardTitle>
@@ -131,12 +179,11 @@ export default function SiteDetailPage() {
                 <div className="flex h-12 w-12 items-center justify-center border-2 border-border bg-primary shadow-brutal">
                   <Building2 className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <p className="text-sm font-bold">{siteData.location_text}</p>
-                <p className="text-xs text-muted-foreground font-medium">{siteData.latitude?.toFixed(4) || 'N/A'}, {siteData.longitude?.toFixed(4) || 'N/A'}</p>
+                <p className="text-sm font-bold">{siteData.location || 'Site Location'}</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {siteData.latitude ? `${siteData.latitude.toFixed(4)}, ${siteData.longitude?.toFixed(4)}` : 'Coordinates not specified'}
+                </p>
               </div>
-              <div className="absolute inset-0" style={{
-                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, hsl(var(--border) / 0.1) 20px, hsl(var(--border) / 0.1) 21px), repeating-linear-gradient(90deg, transparent, transparent 20px, hsl(var(--border) / 0.1) 20px, hsl(var(--border) / 0.1) 21px)'
-              }} />
             </div>
           </CardContent>
         </Card>
@@ -164,13 +211,81 @@ export default function SiteDetailPage() {
                 </div>
               </Link>
             ))}
+            {projects.length === 0 && (
+              <p className="text-sm text-muted-foreground font-medium py-2">No projects assigned to this site</p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Inventory */}
+        {/* Inventory & Stock Consumption */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Inventory</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Site Inventory</CardTitle>
+            {(role === 'contractor' || role === 'pm' || role === 'admin') && (
+              <Dialog open={consumeOpen} onOpenChange={setConsumeOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                    <MinusCircle className="h-3.5 w-3.5" /> Log Consumption
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Record Material Consumption</DialogTitle>
+                    <DialogDescription>
+                      Log materials used for construction work at this site.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleConsumeSubmit} className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="matSelect">Select Material</Label>
+                      <Select value={consumeMaterialId} onValueChange={setConsumeMaterialId} required>
+                        <SelectTrigger id="matSelect">
+                          <SelectValue placeholder="Choose material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {inventory.map((item: any) => (
+                            <SelectItem key={item.material_id} value={String(item.material_id)}>
+                              {item.material_name} (In Stock: {item.quantity} {item.unit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="qtyInput">Quantity Consumed</Label>
+                      <Input
+                        id="qtyInput"
+                        type="number"
+                        min="0.01"
+                        step="any"
+                        placeholder="0.00"
+                        value={consumeQty}
+                        onChange={(e) => setConsumeQty(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="noteInput">Work Reference / Task</Label>
+                      <Input
+                        id="noteInput"
+                        placeholder="e.g. Foundation slab casting work"
+                        value={consumeRef}
+                        onChange={(e) => setConsumeRef(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button type="button" variant="outline" onClick={() => setConsumeOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={consuming}>
+                        {consuming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Record Usage
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
           </CardHeader>
           <CardContent className="space-y-2">
             {inventory.map((item: any) => {
@@ -179,7 +294,7 @@ export default function SiteDetailPage() {
                 <div key={item.id} className="flex items-center justify-between border-2 border-border bg-secondary px-3 py-2">
                   <div>
                     <p className="font-bold text-sm">{item.material_name}</p>
-                    <p className="text-xs text-muted-foreground font-medium">Reorder at {item.reorder_level} {item.unit}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Reorder threshold: {item.reorder_level} {item.unit}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-extrabold text-sm">{item.quantity} {item.unit}</p>
@@ -188,6 +303,9 @@ export default function SiteDetailPage() {
                 </div>
               );
             })}
+            {inventory.length === 0 && (
+              <p className="text-sm text-muted-foreground font-medium py-2">No inventory stocked at this site yet</p>
+            )}
           </CardContent>
         </Card>
 
@@ -206,13 +324,16 @@ export default function SiteDetailPage() {
                 <StatusBadge status={eq.status} />
               </div>
             ))}
+            {equipment.length === 0 && (
+              <p className="text-sm text-muted-foreground font-medium py-2">No equipment assigned</p>
+            )}
           </CardContent>
         </Card>
 
         {/* Contractors */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Contractors</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Assigned Contractors</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {contractors.map((c: any) => (
@@ -221,29 +342,11 @@ export default function SiteDetailPage() {
                   <p className="font-bold text-sm">{c.name}</p>
                   <p className="text-xs text-muted-foreground font-medium">{c.specialty}</p>
                 </div>
-                <span className="text-xs font-medium text-muted-foreground">{c.phone}</span>
+                <span className="text-xs font-medium text-muted-foreground">{c.phone || 'No phone'}</span>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Active Alerts</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {alerts.slice(0, 5).map((alert: any) => (
-              <div key={alert.id} className="border-2 border-border bg-secondary px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <p className="font-bold text-sm">{alert.title}</p>
-                  <StatusBadge status={alert.severity} />
-                </div>
-                <p className="text-xs text-muted-foreground font-medium mt-1">{alert.description}</p>
-              </div>
-            ))}
-            {alerts.length === 0 && (
-              <p className="text-sm text-muted-foreground font-medium text-center py-2">No active alerts</p>
+            {contractors.length === 0 && (
+              <p className="text-sm text-muted-foreground font-medium py-2">No contractors assigned to this site</p>
             )}
           </CardContent>
         </Card>
