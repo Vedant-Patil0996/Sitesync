@@ -45,7 +45,7 @@ export default function LiveActivityPage() {
       const response = await fetch("http://localhost:8000/api/v1/ai/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario_id: selectedScenario.id }),
+        body: JSON.stringify({ scenario_id: selectedScenario.id, site_id: "1" }),
       });
 
       if (response.ok) {

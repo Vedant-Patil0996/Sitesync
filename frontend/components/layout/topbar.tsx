@@ -33,7 +33,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     fetchNotifications();
 
     if (!user) return;
-    const token = localStorage.getItem('site_sync_token');
+    const token = localStorage.getItem('siteSyncToken');
     // We append the token as a query param since EventSource doesn't support headers natively
     // A better approach for prod is to use fetch-event-source, but for now this works if auth middleware supports it
     // Wait, our backend relies on Authorization header for get_current_user. 
@@ -44,7 +44,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     // Assuming backend gets token from header. Let's just do a simple polling interval as a robust fallback for the demo.
     
     // Actually, the user asked for "shown real time show of notif". Let's try EventSource.
-    const es = new EventSource(`/api/v1/notifications/stream?token=${token}`);
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const es = new EventSource(`${API_BASE}/api/v1/notifications/stream?token=${token}`);
     
     es.onmessage = (event) => {
       try {
