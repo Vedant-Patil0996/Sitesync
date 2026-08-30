@@ -13,8 +13,8 @@ SCENARIOS = [
         "tags": ["equipment", "safety"],
         "payload_template": {
             "log_type": "equipment_status",
-            "site_id": "{site_id}",
-            "equipment_id": "EXC-01",
+            "site_id": "63",
+            "equipment_id": "33",
             "status": "critical_failure",
             "timestamp": "{timestamp}"
         }
@@ -28,10 +28,10 @@ SCENARIOS = [
         "tags": ["inventory", "procurement"],
         "payload_template": {
             "log_type": "inventory_alert",
-            "site_id": "{site_id}",
-            "material_id": "{material_id}",
-            "current_quantity": 12,
-            "min_threshold": 150,
+            "site_id": "62",
+            "material_id": "61",
+            "current_quantity": 15,
+            "min_threshold": 100,
             "unit": "bags",
             "timestamp": "{timestamp}"
         }
@@ -45,9 +45,9 @@ SCENARIOS = [
         "tags": ["finance", "budget"],
         "payload_template": {
             "log_type": "budget_alert",
-            "site_id": "{site_id}",
-            "allocated_budget": 500000,
-            "spent_to_date": 478000,
+            "site_id": "64",
+            "allocated_budget": 5500000,
+            "spent_to_date": 3980000,
             "days_remaining_in_period": 12,
             "timestamp": "{timestamp}"
         }
@@ -61,8 +61,8 @@ SCENARIOS = [
         "tags": ["project", "schedule"],
         "payload_template": {
             "log_type": "task_delay",
-            "site_id": "{site_id}",
-            "task_id": "1",
+            "site_id": "61",
+            "task_id": "123",
             "delay_days": 5,
             "cause": "adverse_weather",
             "timestamp": "{timestamp}"
@@ -71,14 +71,14 @@ SCENARIOS = [
     {
         "id": "vendor_price_spike",
         "label": "Vendor Price Spike",
-        "description": "Steel reinforcement price spiked 35% above market benchmark from primary vendor. Triggers Procurement Agent + Budget Agent.",
+        "description": "Electrical cable price spiked 35% above market benchmark from primary vendor. Triggers Procurement Agent + Budget Agent.",
         "severity": "warning",
         "icon": "📈",
         "tags": ["procurement", "vendor"],
         "payload_template": {
             "log_type": "price_anomaly",
-            "site_id": "{site_id}",
-            "material_id": "{material_id}",
+            "site_id": "64",
+            "material_id": "69",
             "vendor_price": 8500,
             "market_benchmark": 6300,
             "deviation_percent": 34.9,
@@ -94,10 +94,10 @@ SCENARIOS = [
         "tags": ["equipment", "inventory", "finance", "multi-agent"],
         "payload_template": {
             "log_type": "cascading_emergency",
-            "site_id": "{site_id}",
+            "site_id": "62",
             "events": [
                 {"type": "equipment_failure", "equipment_id": "CRN-01", "status": "critical_failure"},
-                {"type": "stock_critical", "material_id": "{material_id}", "quantity_remaining": 5}
+                {"type": "stock_critical", "material_id": "61", "quantity_remaining": 5}
             ],
             "timestamp": "{timestamp}"
         }
@@ -111,10 +111,23 @@ SCENARIOS = [
         "tags": ["safety", "compliance"],
         "payload_template": {
             "log_type": "safety_violation",
-            "site_id": "{site_id}",
+            "site_id": "62",
             "violation_count": 3,
-            "equipment_ids": ["EXC-02", "CRN-01"],
+            "equipment_ids": ["33"],
             "violation_types": ["missing_inspection_cert", "operator_license_expired"],
+            "timestamp": "{timestamp}"
+        }
+    },
+    {
+        "id": "schedule_risk_scan",
+        "label": "Proactive Schedule Risk Scan",
+        "description": "Proactively scans all active project tasks, milestones, and dependencies for delay risks. Triggers Project Agent.",
+        "severity": "info",
+        "icon": "🤖",
+        "tags": ["project", "schedule", "proactive"],
+        "payload_template": {
+            "log_type": "proactive_schedule_scan",
+            "site_id": "61",
             "timestamp": "{timestamp}"
         }
     },

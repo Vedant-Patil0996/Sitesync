@@ -83,6 +83,32 @@ def anomaly_detector_node(state: AgentState) -> dict:
     return {"messages": [HumanMessage(content=response.content)]}
 
 
+def _clean_messages_for_non_tool_nodes(messages: list) -> list:
+    """
+    Sanitize messages by converting raw ToolMessages and tool-calling AIMessages into plain text.
+    This prevents Groq API 400 errors ('Tool choice is none, but model called a tool')
+    when invoking non-tool LLM calls (like supervisor and reporter) with context history.
+    """
+    clean = []
+    for msg in messages:
+        msg_type = getattr(msg, "type", None)
+        if msg_type == "tool":
+            tool_name = getattr(msg, "name", "tool")
+            content_str = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
+            clean.append(HumanMessage(content=f"[Tool result — {tool_name}]: {content_str[:500]}"))
+        elif msg_type == "ai":
+            tc = getattr(msg, "tool_calls", None)
+            if msg.content:
+                from langchain_core.messages import AIMessage
+                clean.append(AIMessage(content=msg.content))
+            elif tc:
+                calls_str = ", ".join(tc[i]["name"] for i in range(len(tc)))
+                clean.append(HumanMessage(content=f"[Agent called tools: {calls_str}]"))
+        else:
+            clean.append(msg)
+    return clean
+
+
 def supervisor_node(state: AgentState) -> dict:
     visited = list(state.get("visited_nodes", []))
     visited_str = ", ".join(set(visited)) if visited else "None"
@@ -104,7 +130,15 @@ def supervisor_node(state: AgentState) -> dict:
         "Output ONLY the JSON object, nothing else."
     ))
     time.sleep(1.5)
-    response = llm.invoke([supervisor_prompt] + state["messages"])
+    
+    clean_messages = _clean_messages_for_non_tool_nodes(state["messages"])
+    
+    try:
+        response = llm.invoke([supervisor_prompt] + clean_messages)
+    except Exception as e:
+        _emit_event("MESSAGE", "SYSTEM", f"Supervisor LLM error: {str(e)[:100]}... defaulting to FINISH")
+        _emit_event("AGENT_COMPLETED", "SUPERVISOR", "Defaulting to FINISH due to API error", data={"next_node": "FINISH"})
+        return {"next_node": "FINISH", "visited_nodes": []}
 
     try:
         content = response.content.strip()
@@ -188,6 +222,7 @@ def reporter_node(state: AgentState) -> dict:
         "\nREPORT FORMAT RULES:\n"
         "- Cite DB-sourced facts as [source_table: record_id] (e.g. [equipment: 1], [tasks: 5]).\n"
         "- Cite provisional/estimated values as [provisional] (e.g. the proposed transfer reference number, estimated arrival date).\n"
+        "- If multiple options or agent trade-offs exist (e.g. speed vs. cost, transfer vs. purchase), construct a clear 'Trade-Off Matrix' table comparing Options, Schedule Impact, Cost/Budget Impact, Risk, and Recommendation.\n"
         "- If a reallocation was proposed, write 'PROPOSED ACTION — awaiting human approval:' before describing it.\n"
         "  Do NOT write 'submitted', 'completed', 'executed', or any past-tense that implies the action already happened.\n"
         "- If an agent returned empty lists, errors, or no data, state exactly: 'No data available for [topic]'. Do NOT guess, estimate, or fabricate details.\n"
@@ -197,32 +232,26 @@ def reporter_node(state: AgentState) -> dict:
     # Filter messages: strip tool-result messages and AI messages that only have
     # tool_calls (no text content). This prevents Groq 400 errors when the reporter
     # LLM has no tools bound but sees tool-call history in context.
-    clean_messages = []
-    for msg in state["messages"]:
-        msg_type = getattr(msg, "type", None)
-        if msg_type == "tool":
-            # Represent tool results as a plain human message so context is preserved
-            tool_name = getattr(msg, "name", "tool")
-            content_str = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
-            clean_messages.append(HumanMessage(content=f"[Tool result — {tool_name}]: {content_str[:500]}"))
-        elif msg_type == "ai":
-            tc = getattr(msg, "tool_calls", None)
-            if msg.content:
-                # Keep AI messages that have text
-                from langchain_core.messages import AIMessage
-                clean_messages.append(AIMessage(content=msg.content))
-            elif tc:
-                # Represent tool calls as a plain human message
-                calls_str = ", ".join(tc[i]["name"] for i in range(len(tc)))
-                clean_messages.append(HumanMessage(content=f"[Agent called tools: {calls_str}]"))
-        else:
-            clean_messages.append(msg)
+    clean_messages = _clean_messages_for_non_tool_nodes(state["messages"])
 
     time.sleep(1.5)
-    response = llm.invoke([prompt] + clean_messages)
-    _emit_event("AGENT_COMPLETED", "REPORTER", response.content)
+    
+    try:
+        response = llm.invoke([prompt] + clean_messages)
+        content = response.content
+    except Exception as e:
+        # Fallback if Groq API throws 400 Parsing Failed or other errors
+        _emit_event("MESSAGE", "SYSTEM", f"Reporter LLM encountered an API error: {str(e)[:100]}... Falling back to raw summary.")
+        content = "## Automated Fallback Report\n\nThe AI reporter encountered an API formatting error (400) while compiling the final summary.\n\n**Raw Agent Actions:**\n"
+        for m in clean_messages:
+            if isinstance(m, HumanMessage) and m.content.startswith("["):
+                content += f"- {m.content}\n"
+        from langchain_core.messages import AIMessage
+        response = AIMessage(content=content)
+
+    _emit_event("AGENT_COMPLETED", "REPORTER", content)
     # Emit a dedicated FINAL_REPORT event so the frontend can display it separately
-    _emit_event("FINAL_REPORT", "REPORTER", response.content)
+    _emit_event("FINAL_REPORT", "REPORTER", content)
     return {"messages": [response]}
 
 

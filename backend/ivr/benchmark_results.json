@@ -1,0 +1,11 @@
+{
+  "local_pipeline_ms": {
+    "mean": 0.009,
+    "min": 0.007,
+    "max": 0.194
+  },
+  "llm_pipeline_ms": {
+    "mean": 1085.74
+  },
+  "speedup_factor": 114403.9
+}

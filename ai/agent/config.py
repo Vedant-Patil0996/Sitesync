@@ -18,6 +18,7 @@ NULL_HANDLING_RULE = (
     "that did not appear in a tool response.\n"
     "- Every factual claim MUST cite the database source: [table_name: record_id] "
     "(e.g. [equipment: 1], [purchase_orders: 42]).\n"
+    "- ALWAYS pass EXACT NUMERIC IDs (e.g. '69') to tools for site_id, material_id, vendor_id. NEVER pass string names (e.g. 'Electrical Cable'). Use the list_sites, list_materials, or list_vendors tools to find the numeric ID first if needed.\n"
     "- If you cannot find data after 3-4 tool calls, stop and report what you found."
 )
 
@@ -39,6 +40,15 @@ def list_materials() -> str:
     """List all materials with their numeric IDs and names. Call this when the user mentions a material by name (e.g. 'cement', 'steel') so you can get the correct numeric material_id."""
     try:
         resp = supabase.table('materials').select('id, name, unit').order('name').execute()
+        return json.dumps(resp.data if resp.data else [])
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@tool
+def list_vendors() -> str:
+    """List all vendors with their numeric IDs and names. Call this to look up a vendor's numeric vendor_id from their name."""
+    try:
+        resp = supabase.table('vendors').select('id, name, category').order('name').execute()
         return json.dumps(resp.data if resp.data else [])
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -150,6 +160,7 @@ budget_tools = [
 ]
 
 rag_tool = [search_historical_records]
+discovery_tools = [list_sites, list_materials, list_vendors]
 
 WORKER_CONFIG = {
     "stock": {
@@ -159,7 +170,7 @@ WORKER_CONFIG = {
             "Never recommend a PO if one is already pending."
             + NULL_HANDLING_RULE
         ),
-        "tools": stock_tools + rag_tool
+        "tools": stock_tools + rag_tool + discovery_tools
     },
     "budget": {
         "system_prompt": (
@@ -168,7 +179,7 @@ WORKER_CONFIG = {
             "Cite specific numbers from tool responses only."
             + NULL_HANDLING_RULE
         ),
-        "tools": budget_tools + rag_tool
+        "tools": budget_tools + rag_tool + discovery_tools
     },
     "equipment": {
         "tools": [
@@ -176,7 +187,7 @@ WORKER_CONFIG = {
             find_replacement_equipment,
             reallocate_equipment,
             search_historical_records
-        ],
+        ] + discovery_tools,
         "system_prompt": (
             "You are the Equipment Intelligence Agent. Resolve equipment failures by following this strict sequence:\n"
             "STEP 1: Call get_equipment_status to confirm the equipment's real status and location.\n"
@@ -198,7 +209,7 @@ WORKER_CONFIG = {
             get_task_dependencies,
             calculate_delay_impact,
             search_historical_records
-        ],
+        ] + discovery_tools,
         "system_prompt": (
             "You are the Project Intelligence Agent. Your job is to handle task delays and operational roadblocks.\n"
             "Identify downstream task dependencies, calculate the cost of delay, and recommend corrective scheduling actions.\n"
@@ -214,7 +225,7 @@ WORKER_CONFIG = {
             evaluate_vendor_reliability,
             get_market_price_benchmark,
             search_historical_records
-        ],
+        ] + discovery_tools,
         "system_prompt": (
             "You are the Procurement Intelligence Agent. Your job is to optimize purchasing decisions.\n"
             "Compare quotes, evaluate vendor reliability from real delivery history, and check market benchmarks.\n"

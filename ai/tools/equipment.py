@@ -10,7 +10,13 @@ CRITICAL_STATUSES = {'maintenance'}
 def get_equipment_status(equipment_id: str) -> Dict[str, Any]:
     """Get the current operational status of a piece of equipment."""
     try:
-        resp = supabase.table('equipment').select('*').eq('name', equipment_id).limit(1).execute()
+        if str(equipment_id).isdigit():
+            resp = supabase.table('equipment').select('*').eq('id', int(equipment_id)).limit(1).execute()
+            if not resp.data:
+                resp = supabase.table('equipment').select('*').ilike('name', f"%{equipment_id}%").limit(1).execute()
+        else:
+            resp = supabase.table('equipment').select('*').ilike('name', f"%{equipment_id}%").limit(1).execute()
+        
         if not resp.data:
             return {"error": f"Equipment '{equipment_id}' not found in database. Cannot confirm status.", "source": "equipment table"}
         
@@ -36,7 +42,7 @@ def find_replacement_equipment(equipment_type: str, exclude_site_id: str) -> Lis
         # Use ilike for case-insensitive type matching (LLM may pass 'excavator' or 'Excavator')
         resp = supabase.table('equipment').select(
             'id, name, type, status, site_id, hours_used'
-        ).ilike('type', equipment_type).eq('status', 'idle').neq('site_id', exclude_site_id).execute()
+        ).ilike('type', f"%{equipment_type}%").eq('status', 'idle').neq('site_id', exclude_site_id).execute()
         
         if not resp.data:
             return [{"result": "no_idle_equipment_found", "equipment_type": equipment_type, "searched_sites": "all except site " + str(exclude_site_id)}]
@@ -64,7 +70,13 @@ def reallocate_equipment(equipment_id: str, to_site_id: str) -> Dict[str, Any]:
     """
     try:
         # Verify the equipment exists and is idle (DB read — sourced)
-        check = supabase.table('equipment').select('id, name, type, status, site_id').eq('name', equipment_id).limit(1).execute()
+        if str(equipment_id).isdigit():
+            check = supabase.table('equipment').select('id, name, type, status, site_id').eq('id', int(equipment_id)).limit(1).execute()
+            if not check.data:
+                check = supabase.table('equipment').select('id, name, type, status, site_id').ilike('name', f"%{equipment_id}%").limit(1).execute()
+        else:
+            check = supabase.table('equipment').select('id, name, type, status, site_id').ilike('name', f"%{equipment_id}%").limit(1).execute()
+
         if not check.data:
             return {"error": f"Equipment '{equipment_id}' not found. Cannot propose reallocation.", "source": "equipment table"}
 
