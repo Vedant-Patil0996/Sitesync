@@ -30,36 +30,52 @@ async def get_requests(
     total = query.count()
     requests_db = query.offset(skip).limit(limit).all()
     
+    if not requests_db:
+        return PaginatedResponse[MaterialRequestSchema](items=[], total=0, page=1, size=limit, pages=0)
+
+    req_ids = [r[0].id for r in requests_db]
+    reviewer_ids = set()
+    for r, _, _, _ in requests_db:
+        if r.pm_reviewed_by: reviewer_ids.add(r.pm_reviewed_by)
+        if r.finance_reviewed_by: reviewer_ids.add(r.finance_reviewed_by)
+
+    # Batch fetch reviewer names
+    user_names = {}
+    if reviewer_ids:
+        user_names = dict(
+            db.query(User.id, User.name)
+            .filter(User.id.in_(reviewer_ids)).all()
+        )
+
+    # Batch fetch quotes
+    all_quotes = db.query(VendorQuote, Vendor).join(Vendor, VendorQuote.vendor_id == Vendor.id)\
+        .filter(VendorQuote.request_id.in_(req_ids)).all()
+    
+    quotes_by_req = {}
+    for q, v in all_quotes:
+        if q.request_id not in quotes_by_req:
+            quotes_by_req[q.request_id] = []
+        quotes_by_req[q.request_id].append(VendorQuoteSchema(
+            id=q.id,
+            vendor_name=v.name,
+            unit_price=float(q.unit_price),
+            total_price=float(q.total_price),
+            delivery_days=q.delivery_days,
+            is_selected=q.is_selected
+        ))
+
+    # Batch fetch purchase orders
+    pos = dict(
+        db.query(PurchaseOrder.request_id, PurchaseOrder.status)
+        .filter(PurchaseOrder.request_id.in_(req_ids)).all()
+    )
+
     items = []
     for req, mat, site, user in requests_db:
-        # Get reviewers
-        pm_reviewer_name = None
-        if req.pm_reviewed_by:
-            pm_user = db.query(User).filter(User.id == req.pm_reviewed_by).first()
-            if pm_user:
-                pm_reviewer_name = pm_user.name
-                
-        fin_reviewer_name = None
-        if req.finance_reviewed_by:
-            fin_user = db.query(User).filter(User.id == req.finance_reviewed_by).first()
-            if fin_user:
-                fin_reviewer_name = fin_user.name
-                
-        # Get quotes
-        quotes_db = db.query(VendorQuote, Vendor).join(Vendor, VendorQuote.vendor_id == Vendor.id).filter(VendorQuote.request_id == req.id).all()
-        quotes = []
-        for q, v in quotes_db:
-            quotes.append(VendorQuoteSchema(
-                id=q.id,
-                vendor_name=v.name,
-                unit_price=float(q.unit_price),
-                total_price=float(q.total_price),
-                delivery_days=q.delivery_days,
-                is_selected=q.is_selected
-            ))
-            
-        po = db.query(PurchaseOrder).filter(PurchaseOrder.request_id == req.id).first()
-        po_status = po.status if po else None
+        pm_reviewer_name = user_names.get(req.pm_reviewed_by) if req.pm_reviewed_by else None
+        fin_reviewer_name = user_names.get(req.finance_reviewed_by) if req.finance_reviewed_by else None
+        quotes = quotes_by_req.get(req.id, [])
+        po_status = pos.get(req.id)
 
         items.append(MaterialRequestSchema(
             id=req.id,

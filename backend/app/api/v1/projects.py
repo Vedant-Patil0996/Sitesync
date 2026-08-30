@@ -55,22 +55,42 @@ async def get_projects(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Project).join(Site, Project.site_id == Site.id).filter(Project.company_id == current_user.company_id)
+    query = db.query(Project, Site.name.label("site_name"))\
+        .outerjoin(Site, Project.site_id == Site.id)\
+        .filter(Project.company_id == current_user.company_id)
+    
     if current_user.role in ("pm", "contractor"):
         query = query.filter(Site.id.in_(db.query(SiteAssignment.site_id).filter(SiteAssignment.user_id == current_user.id)))
     
     total = query.count()
     projects_db = query.offset(skip).limit(limit).all()
     
+    if not projects_db:
+        return PaginatedResponse[ProjectSchema](
+            items=[], total=0, page=1, size=limit, pages=0
+        )
+
+    project_ids = [p[0].id for p in projects_db]
+
+    # Single batch queries for counts
+    task_counts = dict(
+        db.query(Task.project_id, func.count(Task.id))
+        .filter(Task.project_id.in_(project_ids))
+        .group_by(Task.project_id).all()
+    )
+    completed_task_counts = dict(
+        db.query(Task.project_id, func.count(Task.id))
+        .filter(Task.project_id.in_(project_ids), Task.status == 'completed')
+        .group_by(Task.project_id).all()
+    )
+    milestone_counts = dict(
+        db.query(Milestone.project_id, func.count(Milestone.id))
+        .filter(Milestone.project_id.in_(project_ids))
+        .group_by(Milestone.project_id).all()
+    )
+    
     items = []
-    for project in projects_db:
-        site = db.query(Site).filter(Site.id == project.site_id).first()
-        site_name = site.name if site else None
-        
-        task_count = db.query(Task).filter(Task.project_id == project.id).count()
-        completed_task_count = db.query(Task).filter(Task.project_id == project.id, Task.status == 'completed').count()
-        milestone_count = db.query(Milestone).filter(Milestone.project_id == project.id).count()
-        
+    for project, site_name in projects_db:
         items.append(ProjectSchema(
             id=project.id,
             name=project.name,
@@ -79,9 +99,9 @@ async def get_projects(
             progress_percent=float(project.progress_percent),
             end_date=project.end_date,
             budget_allocated=float(project.budget_allocated),
-            task_count=task_count,
-            completed_task_count=completed_task_count,
-            milestone_count=milestone_count
+            task_count=task_counts.get(project.id, 0),
+            completed_task_count=completed_task_counts.get(project.id, 0),
+            milestone_count=milestone_counts.get(project.id, 0)
         ))
         
     return PaginatedResponse[ProjectSchema](

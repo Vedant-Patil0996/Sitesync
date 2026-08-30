@@ -68,7 +68,7 @@ ALL_TOOLS = [
 
 # ── LLM ──────────────────────────────────────────────────────────────────────
 
-_llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0)
+_llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0, max_retries=5)
 _llm_with_tools = _llm.bind_tools(ALL_TOOLS)
 
 MAX_TOOL_ROUNDS = 5

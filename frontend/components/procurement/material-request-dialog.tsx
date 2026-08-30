@@ -88,7 +88,7 @@ export function MaterialRequestDialog({ siteId, siteName, onSuccess }: MaterialR
     });
   };
 
-  const selectedMaterial = materials?.find(m => String(m.id) === selectedMaterialId);
+  const selectedMaterial = materials?.find((m: any) => String(m.id) === selectedMaterialId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

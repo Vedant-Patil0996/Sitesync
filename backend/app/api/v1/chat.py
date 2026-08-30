@@ -78,11 +78,16 @@ async def chat(
     _ensure_ai_on_path()
 
     try:
+        import asyncio
         from ai.agent.chat_agent import run_chat
-        answer = run_chat(
-            question=body.question.strip(),
-            site_id=body.site_id,
-            company_id=body.company_id,
+
+        loop = asyncio.get_running_loop()
+        answer = await loop.run_in_executor(
+            None,
+            run_chat,
+            body.question.strip(),
+            body.site_id,
+            body.company_id,
         )
         return ChatResponse(question=body.question, answer=answer)
 

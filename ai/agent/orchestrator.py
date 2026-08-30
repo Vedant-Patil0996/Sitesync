@@ -50,8 +50,8 @@ class AgentState(TypedDict):
     visited_nodes: Annotated[Sequence[str], operator.add]
 
 
-# Use Groq's flagship model
-llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0)
+# Use Groq LLM with retries to handle rate limits
+llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0, max_retries=5)
 
 
 # ── Node helpers ───────────────────────────────────────────────────────────────

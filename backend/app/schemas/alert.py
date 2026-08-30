@@ -25,5 +25,8 @@ class NotificationSchema(BaseModel):
     related_entity_id: Optional[int]
     title: str
     message: Optional[str]
-    is_read: bool
+    status: str
+    read_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+    failed_at: Optional[datetime] = None
     created_at: datetime

@@ -10,6 +10,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { ROLE_LABELS } from '@/lib/types';
 import { LanguageSelect } from '@/components/shared/language-select';
 import { apiFetch } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -23,16 +24,51 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     async function fetchNotifications() {
       if (!user) return;
       try {
-        const data = await apiFetch<any[]>('/api/v1/notifications');
+        const data = await apiFetch<any[]>('/api/v1/notifications/');
         setNotifications(data);
       } catch (error) {
         console.error('Failed to load notifications', error);
       }
     }
     fetchNotifications();
+
+    if (!user) return;
+    const token = localStorage.getItem('siteSyncToken');
+    if (!token || token === 'null' || token === 'undefined') return;
+
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    let es: EventSource | null = null;
+
+    try {
+      es = new EventSource(`${API_BASE}/api/v1/notifications/stream?token=${encodeURIComponent(token)}`);
+      
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'NEW_NOTIFICATION') {
+            const notif = data.notification;
+            setNotifications(prev => [notif, ...prev]);
+            toast.info(notif.title, { description: notif.message });
+          }
+        } catch (err) {
+          console.error("Failed to parse SSE", err);
+        }
+      };
+
+      es.onerror = () => {
+        // Close SSE stream gracefully on error/auth failure to prevent continuous retry 404/401 logs
+        es?.close();
+      };
+    } catch (err) {
+      console.warn("Could not connect notification stream", err);
+    }
+
+    return () => {
+      es?.close();
+    };
   }, [user]);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = notifications.filter((n) => !n.read_at && n.status === 'created').length;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b-2 border-border bg-card px-4">

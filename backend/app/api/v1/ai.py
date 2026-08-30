@@ -101,14 +101,16 @@ def _run_agent(run_id: str, loop: asyncio.AbstractEventLoop, scenario_id: str, s
 
     finally:
         # ── Insert Alert + Notifications into DB ──────────────────────────
-        if final_report and site_id:
+        # Default to site_id="1" if none provided so notifications always fire
+        effective_site_id = site_id if site_id else "1"
+        if final_report and effective_site_id:
             try:
                 from app.services.notification_service import create_alert_and_notify
                 db: Session = SessionLocal()
                 try:
                     create_alert_and_notify(
                         db=db,
-                        site_id=int(site_id),
+                        site_id=int(effective_site_id),
                         report=final_report,
                         scenario_id=scenario_id,
                         run_id=run_id,
