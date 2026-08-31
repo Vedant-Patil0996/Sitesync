@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Dependencies & Environments
+node_modules
+**/node_modules
+venv
+**/venv
+.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Build outputs
+.next
+**/dist
+**/build
+**/out
+*.tsbuildinfo
+
+# Local secrets & artifacts
+.env.local
+.env.*.local
+agent_output.*
+agent_trace.*
+*.log

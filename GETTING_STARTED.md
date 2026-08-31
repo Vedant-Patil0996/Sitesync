@@ -1,6 +1,6 @@
 # Getting Started with SiteSync
 
-This document covers how to set up and run the project locally.
+This document covers how to set up and run the project locally using either **Docker Compose (Recommended)** or **Manual Bare-Metal Setup**.
 
 The stack consists of a **Next.js Frontend**, a **FastAPI Backend**, an **AI Multi-Agent Engine** (LangGraph + Groq), a **PWA** (Vite + React), and a **Supabase PostgreSQL** database.
 
@@ -10,13 +10,16 @@ The stack consists of a **Next.js Frontend**, a **FastAPI Backend**, an **AI Mul
 
 | Tool | Version | Install |
 |------|---------|---------|
-| Python | 3.10+ | [python.org](https://python.org) |
-| Node.js | 18+ | [nodejs.org](https://nodejs.org) |
+| Docker & Docker Compose | Latest | [docker.com](https://www.docker.com) |
+| Python *(for manual setup)* | 3.10+ | [python.org](https://python.org) |
+| Node.js *(for manual setup)* | 18+ | [nodejs.org](https://nodejs.org) |
 | Git | any | [git-scm.com](https://git-scm.com) |
 
 ---
 
-## 1. Environment Setup
+## 1. Environment Configuration
+
+Create your environment files before running the application:
 
 ### Backend (`backend/.env`)
 ```env
@@ -25,14 +28,21 @@ SUPABASE_URL=https://[YOUR-PROJECT].supabase.co
 SUPABASE_ANON_KEY=[YOUR-ANON-KEY]
 SUPABASE_SERVICE_ROLE_KEY=[YOUR-SERVICE-ROLE-KEY]
 
-# PostgreSQL direct connection
+# Database Connection (Use IPv4 pooler on port 5432 or 6543)
 DATABASE_URL=postgresql://postgres.[YOUR-PROJECT]:[URL_ENCODED_PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
+DIRECT_URL=postgresql://postgres.[YOUR-PROJECT]:[URL_ENCODED_PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
 
-# AI / Groq
+# AI / Groq (Required for multi-agent engine)
 GROQ_API_KEY=[YOUR-GROQ-API-KEY]
 
 # Optional: Gemini (used by IVR fallback classifier)
 GEMINI_API_KEY=[YOUR-GEMINI-API-KEY]
+
+# Optional: Twilio Voice & Whapi WhatsApp
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_PHONE_NUMBER=...
+WHAPI_CLOUD_API_TOKEN=...
 
 # CORS
 FRONTEND_URL=http://localhost:3000
@@ -53,31 +63,56 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ---
 
-## 2. Seeding the Database
+## 2. Running with Docker Compose (Recommended)
 
-Run the seed script once to populate demo company data and RBAC accounts.
+Docker Compose containerizes and runs the entire stack together across 3 isolated services connected via an internal network (`sitesync-net`):
 
+```bash
+# 1. Build and start all services in detached mode
+docker compose up --build -d
+
+# 2. Check service status and health
+docker compose ps
+```
+
+### Container Endpoints:
+
+| Service | Container Name | Port Mapping | URL |
+|---------|----------------|--------------|-----|
+| **Frontend** | `sitesync-frontend` | `3000:3000` | [http://localhost:3000](http://localhost:3000) |
+| **Backend & AI** | `sitesync-backend` | `8000:8000` | [http://localhost:8000](http://localhost:8000) / [Docs](http://localhost:8000/docs) |
+| **Mobile PWA** | `sitesync-pwa` | `5173:80` | [http://localhost:5173](http://localhost:5173) |
+
+### Useful Docker Commands:
+```bash
+# View backend & live AI cron logs
+docker compose logs -f backend
+
+# View frontend logs
+docker compose logs -f frontend
+
+# Execute a bash shell inside the backend container
+docker compose exec -it backend bash
+
+# Stop and remove containers
+docker compose down
+```
+
+---
+
+## 3. Manual Bare-Metal Setup (Alternative)
+
+### A. Seeding the Database
+Run the seed script once to populate demo company data and RBAC accounts:
 ```bash
 # Navigate to the test directory
 cd test
-
-# Install Supabase JS client (if not already installed)
 npm install @supabase/supabase-js
-
-# Run the seed script
 node seed.js
 ```
+This creates the 4 core demo accounts (`admin@sitesync.local`, `pm@sitesync.local`, `contractor@sitesync.local`, `finance@sitesync.local` / Password: `password123`).
 
-This creates the following demo accounts in both Supabase Auth and the PostgreSQL `users` table:
-
-| Email | Password | Role |
-|-------|----------|------|
-| `admin@sitesync.local` | `password123` | Admin |
-| `pm@sitesync.local` | `password123` | Project Manager |
-| `contractor@sitesync.local` | `password123` | Contractor |
-| `finance@sitesync.local` | `password123` | Finance |
-
-For a richer dataset (projects, tasks, inventory, equipment), run the Python demo seeder:
+For a richer dataset (projects, tasks, inventory, equipment), run:
 ```bash
 cd backend
 .\venv\Scripts\Activate.ps1     # Windows
@@ -85,113 +120,66 @@ cd backend
 python seed_demo.py
 ```
 
----
-
-## 3. Starting the Backend (FastAPI)
-
-The backend serves the REST API, WebSocket streams, SSE notification stream, and the IVR webhook.
-
+### B. Starting the Backend
 ```bash
 cd backend
-
-# Create virtual environment (first time only)
 python -m venv venv
-
-# Activate it
 .\venv\Scripts\Activate.ps1     # Windows
 # source venv/bin/activate       # Mac/Linux
 
-# Install all dependencies
 pip install -r requirements.txt
-
-# Start the server
 python -m uvicorn app.main:app --reload
 ```
+Runs at **http://localhost:8000** (Swagger at `/docs`).
 
-The backend runs at **http://localhost:8000**.
-Interactive API docs are at **http://localhost:8000/docs**.
-
-On startup, the server automatically starts:
-- **Background Cron Scheduler** — triggers an AI simulation scenario every 15 minutes.
-- **Schedule Monitor** — scans all active projects for at-risk tasks and milestones.
-
----
-
-## 4. Starting the Frontend (Next.js)
-
+### C. Starting the Frontend
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the dev server
 npm run dev
 ```
+Runs at **http://localhost:3000**.
 
-The frontend runs at **http://localhost:3000**.
-
-### Login & Testing
-1. Open **http://localhost:3000**
-2. Click **Log In** and use any seeded demo account.
-3. The dashboard adapts to your role — admins see full system health, contractors only see their assigned tasks.
-
----
-
-## 5. Starting the PWA (Mobile Companion)
-
-The PWA is a lightweight Vite + React app for on-site workers (contractors, supervisors).
-
+### D. Starting the PWA
 ```bash
 cd pwa
-
-# Install dependencies
 npm install
-
-# Start the dev server
 npm run dev
 ```
-
-The PWA runs at **http://localhost:5173** by default.
+Runs at **http://localhost:5173**.
 
 ---
 
-## 6. AI Agent (Running Directly)
+## 4. AI Agent System
 
-The AI multi-agent engine runs as a subprocess of the FastAPI backend. To trigger it manually:
+The AI multi-agent engine runs as a subprocess of the FastAPI backend.
 
+### Simulation Scenarios:
+| ID | Description | Agents Triggered |
+|----|-------------|------------------|
+| `equipment_critical_failure` | Excavator critical failure | Equipment + Procurement |
+| `stock_critically_low` | Cement stock below 10% threshold | Stock + Procurement |
+| `budget_overrun` | Site expenses at 95% of monthly budget | Budget + Procurement |
+| `task_delay_cascade` | Foundation delay cascades to 3 tasks | Project + Budget |
+| `vendor_price_spike` | Cable price spike 35% above benchmark | Procurement + Budget |
+| `multi_site_cascade` | Simultaneous equipment + stock emergency | Equipment + Stock + Budget + Procurement |
+| `safety_violation` | Safety inspection flagged 3 violations | Project + Equipment |
+| `schedule_risk_scan` | Proactive task/milestone risk scan | Project |
+
+### Manual Trigger:
 ```bash
-# Trigger via API (recommended)
 curl -X POST http://localhost:8000/api/v1/ai/trigger \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{"scenario_id": "equipment_critical_failure"}'
 ```
 
-Or run directly for debugging:
-```bash
-# Must be run from the project root
-backend/venv/Scripts/python.exe ai/scripts/test_agent.py
-```
-
-Available simulation scenarios:
-| ID | Description |
-|----|-------------|
-| `equipment_critical_failure` | Excavator critical failure |
-| `stock_critically_low` | Cement stock below 10% threshold |
-| `budget_overrun` | Site expenses at 95% of monthly budget |
-| `task_delay_cascade` | Foundation delay cascades to 3 tasks |
-| `vendor_price_spike` | Cable price spike 35% above benchmark |
-| `multi_site_cascade` | Simultaneous equipment + stock emergency |
-| `safety_violation` | Safety inspection flagged 3 violations |
-| `schedule_risk_scan` | Proactive task/milestone risk scan |
-
 ---
 
-## 7. Real-Time Architecture Overview
+## 5. Real-Time Architecture Overview
 
 ```
-Frontend (Next.js)
+Frontend (Next.js) & PWA
     │
     ├── SSE stream   GET /api/v1/notifications/stream   (in-app alerts)
     │
@@ -215,17 +203,3 @@ Backend (FastAPI)
     └── IVR (Twilio voice webhook at /ivr/incoming)
         └── Keyword classifier → Gemini fallback (google-genai)
 ```
-
----
-
-## 8. Key Env Variables Reference
-
-| Variable | Where | Purpose |
-|----------|-------|---------|
-| `DATABASE_URL` | `backend/.env` | PostgreSQL connection string |
-| `SUPABASE_URL` | `backend/.env`, `ai/.env` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | `backend/.env`, `ai/.env` | Full DB access (server-side only) |
-| `GROQ_API_KEY` | `backend/.env`, `ai/.env` | AI inference via Groq (LLaMA / Gemma) |
-| `GEMINI_API_KEY` | `backend/.env` | Gemini fallback for IVR voice intent |
-| `NEXT_PUBLIC_API_URL` | `frontend/.env.local` | Backend URL for the frontend |
-| `FRONTEND_URL` | `backend/.env` | CORS origin allowlist |

@@ -1,8 +1,5 @@
-import google.generativeai as genai
 import os
 import json
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="google")
 
 def _format_fallback_response(tool_output: str, language: str) -> str:
     """Format a JSON response from any tool into a readable localized IVR reply when AI fails."""

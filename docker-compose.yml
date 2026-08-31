@@ -1,0 +1,58 @@
+services:
+  # ── 1. FastAPI Backend + AI Engine ──
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: sitesync-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      - FRONTEND_URL=http://localhost:3000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - sitesync-net
+
+  # ── 2. Next.js Frontend ──
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: sitesync-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - sitesync-net
+
+  # ── 3. On-Site Mobile PWA ──
+  pwa:
+    build:
+      context: .
+      dockerfile: pwa/Dockerfile
+    container_name: sitesync-pwa
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - sitesync-net
+
+networks:
+  sitesync-net:
+    driver: bridge

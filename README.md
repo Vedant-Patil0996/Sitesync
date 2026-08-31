@@ -46,79 +46,20 @@ SiteSync/
 
 ---
 
-## Getting Started
+## Quickstart & Setup
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- A Supabase project
-- A Groq API key
+For complete, step-by-step installation instructions using **Docker Compose** or **Local Python/Node**, see:
 
-### 1. Clone the repo
+👉 **[GETTING_STARTED.md](GETTING_STARTED.md)**
+
+### Running with Docker (Recommended)
 ```bash
-git clone https://github.com/your-username/SiteSync.git
-cd SiteSync
+# Start all 3 services (Frontend, Backend + AI, PWA)
+docker compose up --build -d
 ```
-
-### 2. Backend
-```bash
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1        # Windows
-# source venv/bin/activate          # macOS/Linux
-
-pip install -r requirements.txt
-```
-
-Create `backend/.env`:
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-DATABASE_URL=postgresql://user:password@host:5432/db
-DIRECT_URL=postgresql://user:password@host:5432/db
-GROQ_API_KEY=your-groq-key
-FRONTEND_URL=http://localhost:3000
-```
-
-Run migrations then start:
-```bash
-python scripts/migrate_db.py
-uvicorn app.main:app --reload
-```
-
-### 3. AI Agent
-```bash
-cd ai
-```
-
-Create `ai/.env`:
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-GROQ_API_KEY=your-groq-key
-```
-
-> The AI agent shares the backend's virtual environment (`backend/venv`). All AI dependencies are included in `backend/requirements.txt`.
-
-### 4. Frontend
-```bash
-cd frontend
-npm install
-```
-
-Create `frontend/.env.local`:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
-
-```bash
-npm run dev
-```
-
-App runs at **http://localhost:3000**
+- **Web App**: [http://localhost:3000](http://localhost:3000)
+- **Backend API & Swagger**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Mobile PWA**: [http://localhost:5173](http://localhost:5173)
 
 ---
 

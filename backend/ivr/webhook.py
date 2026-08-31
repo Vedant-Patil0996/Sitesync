@@ -14,7 +14,7 @@ from ivr.response_compressor import compress_response
 from ivr.tool_adapters import query_stock, query_equipment, query_budget
 from ivr.demo_logger import log_demo_turn, get_all_logs
 from ivr.faq_knowledge import FAQ_SYSTEM_PROMPT
-import google.generativeai as genai
+from google import genai
 import os
 
 router = APIRouter()
@@ -386,9 +386,11 @@ async def handle_process(request: Request):
             faq_answered = False
             for _model_name in ["gemini-3.5-flash-lite", "gemini-3.6-flash"]:
                 try:
-                    genai.configure(api_key=api_key)
-                    faq_model = genai.GenerativeModel(_model_name)
-                    faq_resp = faq_model.generate_content(faq_prompt)
+                    client = genai.Client(api_key=api_key)
+                    faq_resp = client.models.generate_content(
+                        model=_model_name,
+                        contents=faq_prompt
+                    )
                     reply = faq_resp.text.strip()
                     faq_answered = True
                     break
