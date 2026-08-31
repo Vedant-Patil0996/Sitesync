@@ -67,6 +67,7 @@ _CRON_SCENARIOS = [
     "vendor_price_spike",
     "safety_violation",
     "multi_site_cascade",
+    "schedule_risk_scan",
 ]
 _cron_scenario_index = 0
 
@@ -91,11 +92,22 @@ async def _auto_simulate():
     loop.run_in_executor(None, _run_agent, run_id, loop, scenario_id, "", "")
 
 
+async def _run_schedule_monitor():
+    """
+    Executes schedule checks asynchronously in an executor.
+    """
+    print("[CRON] Running proactive schedule scan...", flush=True)
+    from app.services.schedule_monitor import run_schedule_check
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, run_schedule_check)
+
+
 scheduler = AsyncIOScheduler()
 
 
 @app.on_event("startup")
 async def startup_event():
+    # 1. Register AI Auto-Simulation
     scheduler.add_job(
         _auto_simulate,
         trigger=IntervalTrigger(minutes=15),
@@ -104,8 +116,17 @@ async def startup_event():
         replace_existing=True,
         next_run_time=None,   # Don't run immediately on startup — wait first interval
     )
+    # 2. Register Proactive Schedule Monitor Scan (runs every 30 minutes)
+    scheduler.add_job(
+        _run_schedule_monitor,
+        trigger=IntervalTrigger(minutes=30),
+        id="schedule_monitor",
+        name="Proactive Project Schedule Scan (30 min)",
+        replace_existing=True,
+        next_run_time=None,
+    )
     scheduler.start()
-    print("[CRON] Auto-simulation scheduler started. Runs every 15 minutes.", flush=True)
+    print("[CRON] Auto-simulation and Schedule Monitor schedulers started.", flush=True)
 
 
 @app.on_event("shutdown")

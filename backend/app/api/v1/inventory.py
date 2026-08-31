@@ -11,12 +11,13 @@ from app.schemas.common import PaginatedResponse
 
 router = APIRouter()
 
+@router.get("", response_model=PaginatedResponse[InventorySchema])
 @router.get("/", response_model=PaginatedResponse[InventorySchema])
 async def get_inventory(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db), 
-    current_user: User = Depends(require_role("admin", "pm", "finance"))
+    current_user: User = Depends(require_role("admin", "pm", "finance", "contractor"))
 ):
     query = db.query(Inventory, Material, Site)\
         .join(Material, Inventory.material_id == Material.id)\

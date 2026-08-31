@@ -50,7 +50,8 @@ class TaskSchema(BaseModel):
     depends_on_task_id: Optional[int]
     progress_percent: float = 0
     assigned_to: Optional[int] = None
-    
+    assigned_to_name: Optional[str] = None
+
 class MilestoneSchema(BaseModel):
     id: int
     name: str
@@ -97,3 +98,51 @@ class ProjectDetailSchema(ProjectSchema):
     pm_id: int
     tasks: List[TaskSchema]
     milestones: List[MilestoneSchema]
+
+# ── Gantt schemas ──────────────────────────────────────────────────────────────
+
+class GanttTaskSchema(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    status: str
+    priority: str
+    start_date: Optional[date]
+    end_date: Optional[date]
+    progress_percent: float
+    depends_on_task_id: Optional[int] = None
+    assigned_to: Optional[int] = None
+    assigned_to_name: Optional[str] = None
+    days_overdue: int = 0          # 0 if not overdue, else days past end_date
+    is_on_critical_path: bool = False  # True if task has dependents AND is delayed/at-risk
+
+class GanttMilestoneSchema(BaseModel):
+    id: int
+    name: str
+    due_date: Optional[date]
+    status: str
+
+class GanttDataSchema(BaseModel):
+    project_id: int
+    project_name: str
+    project_start: Optional[date]
+    project_end: Optional[date]
+    project_status: str
+    tasks: List[GanttTaskSchema]
+    milestones: List[GanttMilestoneSchema]
+
+# ── Schedule health schemas ────────────────────────────────────────────────────
+
+class ScheduleHealthSchema(BaseModel):
+    project_id: int
+    project_name: str
+    risk_level: str                    # "on_track" | "at_risk" | "critical"
+    overdue_task_count: int
+    delayed_task_count: int
+    missed_milestone_count: int
+    upcoming_deadline_count: int       # tasks/milestones due within 7 days
+    total_tasks: int
+    completed_tasks: int
+    progress_percent: float
+    days_to_project_deadline: Optional[int]  # None if no end_date set
+

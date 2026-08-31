@@ -127,7 +127,7 @@ SCENARIOS = [
         "tags": ["project", "schedule", "proactive"],
         "payload_template": {
             "log_type": "proactive_schedule_scan",
-            "site_id": "61",
+            "site_id": "{site_id}",
             "timestamp": "{timestamp}"
         }
     },

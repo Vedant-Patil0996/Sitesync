@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.session import get_db
-from app.core.deps import get_current_user, require_role
+from app.core.deps import get_current_user, require_role, audit
 from app.models.user import User
 from app.models.site import Site
 from app.models.project import Project
@@ -11,7 +11,7 @@ from app.models.finance import Expense
 from app.models.inventory import Inventory, Material
 from app.models.equipment import Equipment
 from app.models.site import SiteAssignment
-from app.schemas.site import SiteSchema, SiteDetailSchema, SiteContractorSchema
+from app.schemas.site import SiteSchema, SiteDetailSchema, SiteContractorSchema, SiteCreateSchema
 from app.schemas.project import ProjectSchema
 from app.schemas.inventory import InventorySchema
 from app.schemas.equipment import EquipmentSchema
@@ -21,6 +21,34 @@ from fastapi import HTTPException
 
 router = APIRouter()
 
+@router.post("", response_model=dict)
+@router.post("/", response_model=dict)
+async def create_site(
+    payload: SiteCreateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin"))
+):
+    if not payload.name.strip():
+        raise HTTPException(status_code=400, detail="Site name is required")
+    if payload.status not in ("active", "on_hold", "completed"):
+        raise HTTPException(status_code=400, detail="Invalid site status")
+        
+    site = Site(
+        company_id=current_user.company_id,
+        name=payload.name.strip(),
+        location=payload.location.strip() if payload.location else None,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        status=payload.status,
+        created_by=current_user.id
+    )
+    db.add(site)
+    db.flush()
+    audit(db, current_user, "site.created", "site", site.id, {"name": site.name})
+    db.commit()
+    return {"id": site.id, "status": "created"}
+
+@router.get("", response_model=PaginatedResponse[SiteSchema])
 @router.get("/", response_model=PaginatedResponse[SiteSchema])
 async def get_sites(
     skip: int = Query(0, ge=0),
@@ -28,7 +56,7 @@ async def get_sites(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Site).filter(Site.company_id == current_user.company_id)
+    query = db.query(Site).filter(Site.company_id == current_user.company_id).order_by(Site.created_at.desc())
     
     total = query.count()
     sites_db = query.offset(skip).limit(limit).all()
