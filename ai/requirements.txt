@@ -1,11 +1,25 @@
+"""
+AI Agent requirements — runs inside the backend/venv environment.
+These dependencies are also listed in backend/requirements.txt.
+Do NOT create a separate venv for the ai/ module.
+"""
+# ── Core AI / Orchestration ────────────────────────────────────────────────────
 groq>=0.11.0
-supabase>=2.8.0
-sentence-transformers>=3.1.0
-pydantic>=2.9.0
-python-dotenv>=1.0.0
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-groq>=0.1.0
 langgraph>=0.1.0
-fastapi>=0.110.0
-uvicorn>=0.29.0
+
+# ── Supabase (data tools) ──────────────────────────────────────────────────────
+supabase>=2.8.0
+
+# ── Embeddings (RAG / semantic search) ────────────────────────────────────────
+sentence-transformers>=3.1.0
+
+# ── Config / Validation ───────────────────────────────────────────────────────
+pydantic>=2.9.0
+python-dotenv>=1.0.0
+
+# ── API server (for standalone agent mode only) ───────────────────────────────
+fastapi>=0.115.0
+uvicorn>=0.30.0

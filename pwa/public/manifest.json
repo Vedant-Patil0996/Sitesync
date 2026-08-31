@@ -1,0 +1,42 @@
+{
+  "short_name": "SiteSync",
+  "name": "SiteSync - Construction Intelligence PWA",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b0f19",
+  "theme_color": "#0284c7",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Mobile Construction Intelligence Platform for Managing Sites, Inventory, Equipment, POs, and AI Multi-Agent Assistance.",
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Inventory Scan",
+      "short_name": "Stock Scan",
+      "description": "Quickly scan inventory QR code",
+      "url": "/?tab=stock&action=scan",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AI Assistant",
+      "short_name": "Ask AI",
+      "description": "Consult SiteSync AI Multi-Agent",
+      "url": "/?tab=ai",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

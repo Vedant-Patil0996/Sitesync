@@ -34,7 +34,7 @@ SCENARIO_ALERT_TYPE = {
 def _infer_severity(report: str, scenario_id: Optional[str]) -> str:
     """Heuristically determine severity from report text."""
     report_lower = report.lower()
-    if any(w in report_lower for w in ["critical", "safety hazard", "immediate", "emergency", "halt operations"]):
+    if any(w in report_lower for w in ["critical", "safety hazard", "immediate", "emergency", "halt operations", "discrepancy", "damaged", "stockout", "shortage"]):
         return "critical"
     if any(w in report_lower for w in ["warning", "overrun", "delay", "spike", "exceeded", "threshold"]):
         return "warning"
@@ -129,7 +129,6 @@ def create_alert_and_notify(
                 related_entity_type="ai_run",
                 title=f"🤖 {source_tag} [{severity.upper()}]: {title[:80]}",
                 message=summary[:300],
-                status="created",
             )
             db.add(notif)
             notifications_created.append((user, notif))
@@ -141,5 +140,8 @@ def create_alert_and_notify(
     for user, notif in notifications_created:
         dispatcher.dispatch(db, user, notif, alert)
 
-    print(f"[NotificationService] Created alert #{alert.id} ({severity}) → {notif_count} notifications sent", flush=True)
+    try:
+        print(f"[NotificationService] Created alert #{alert.id} ({severity}) -> {notif_count} notifications sent", flush=True)
+    except Exception:
+        pass
     return alert

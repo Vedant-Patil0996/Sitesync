@@ -465,6 +465,10 @@ async def get_schedule_health(
     project = _project_for_user(db, project_id, current_user)
     today = date.today()
 
+    # Query tasks and milestones for this project
+    tasks = db.query(Task).filter(Task.project_id == project_id).all()
+    milestones = db.query(Milestone).filter(Milestone.project_id == project_id).all()
+
     # For projects not yet started or in planning, schedule drift is not active
     is_project_started = (project.status == "in_progress") and (not project.start_date or project.start_date <= today)
 

@@ -1,0 +1,25 @@
+{
+  "short_name": "SiteSync",
+  "name": "SiteSync - Construction Resource Management",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F7F0E5",
+  "theme_color": "#A8323E",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Multi-site construction resource intelligence platform."
+}

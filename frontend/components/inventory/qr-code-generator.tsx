@@ -26,7 +26,10 @@ export function QRCodeGenerator({ open, onClose, batch }: QRCodeGeneratorProps) 
 
   if (!batch) return null;
 
-  const qrPayload = batch.batch_code;
+  const host = (typeof window !== 'undefined' && window.location.origin.includes('http') && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1'))
+    ? window.location.origin
+    : (process.env.NEXT_PUBLIC_APP_URL || 'https://unconsultable-unanecdotally-ariella.ngrok-free.dev');
+  const qrPayload = `${host}/inventory?scan=${batch.batch_code}`;
 
   const handlePrint = () => {
     const content = labelRef.current?.innerHTML;
@@ -119,7 +122,7 @@ export function QRCodeGenerator({ open, onClose, batch }: QRCodeGeneratorProps) 
           </Button>
         </div>
         <p className="text-xs text-muted-foreground text-center">
-          QR payload: <code className="font-mono text-[10px]">{batch.batch_code}</code>
+          QR payload: <code className="font-mono text-[10px]">{qrPayload}</code>
         </p>
       </DialogContent>
     </Dialog>

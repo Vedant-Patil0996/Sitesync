@@ -84,6 +84,8 @@ export function QRScannerModal({ open, onClose, onActionComplete, sites = [], in
   const [activity, setActivity] = useState('');
   const [reason, setReason] = useState('');
   const [destSiteId, setDestSiteId] = useState('');
+  const [proofImage, setProofImage] = useState<string>('delivery_receipt_scan.jpg');
+  const [transcript, setTranscript] = useState<string>('Unloaded at Bay 2. Verified 15 bags damaged in transit by site supervisor.');
   const [actionResult, setActionResult] = useState<any>(null);
 
   const reset = () => {
@@ -97,6 +99,8 @@ export function QRScannerModal({ open, onClose, onActionComplete, sites = [], in
     setActivity('');
     setReason('');
     setDestSiteId('');
+    setProofImage('delivery_receipt_scan.jpg');
+    setTranscript('Unloaded at Bay 2. Verified 15 bags damaged in transit by site supervisor.');
     setActionResult(null);
   };
 
@@ -118,8 +122,8 @@ export function QRScannerModal({ open, onClose, onActionComplete, sites = [], in
             const obj = JSON.parse(code);
             code = obj.batch_id || obj.batch_code || code;
           } catch {}
-        } else if (code.includes('batch=')) {
-          const match = code.match(/batch=([^&]+)/);
+        } else if (code.includes('batch=') || code.includes('scan=')) {
+          const match = code.match(/(?:batch|scan)=([^&]+)/);
           if (match) code = match[1];
         }
         setLoading(true);
@@ -150,8 +154,8 @@ export function QRScannerModal({ open, onClose, onActionComplete, sites = [], in
         const obj = JSON.parse(code);
         code = obj.batch_id || obj.batch_code || code;
       } catch {}
-    } else if (code.includes('batch=')) {
-      const match = code.match(/batch=([^&]+)/);
+    } else if (code.includes('batch=') || code.includes('scan=')) {
+      const match = code.match(/(?:batch|scan)=([^&]+)/);
       if (match) code = match[1];
     }
 
@@ -416,6 +420,40 @@ export function QRScannerModal({ open, onClose, onActionComplete, sites = [], in
               </div>
             )}
 
+            {/* Static Proof Photo Attachment */}
+            <div className="space-y-1">
+              <label className="text-sm font-bold flex items-center justify-between">
+                <span>📷 Delivery Slip / Inspection Proof Photo</span>
+                <span className="text-xs text-muted-foreground font-normal">Attached</span>
+              </label>
+              <div className="border-2 border-dashed border-border rounded-md p-3 bg-muted/20 flex items-center gap-3">
+                <div className="h-10 w-10 rounded border-2 border-primary bg-primary/10 flex items-center justify-center font-bold text-xs text-primary shrink-0">
+                  IMG
+                </div>
+                <div className="flex-1 min-w-0 text-xs">
+                  <Input
+                    value={proofImage}
+                    onChange={e => setProofImage(e.target.value)}
+                    placeholder="proof_receipt.jpg"
+                    className="h-8 font-mono text-xs mb-1"
+                  />
+                  <p className="text-[11px] text-muted-foreground truncate">Proof slip attached: delivery_receipt_scan.jpg</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Field Inspection Transcript / Notes */}
+            <div className="space-y-1">
+              <label className="text-sm font-bold">🎤 Field Inspection Transcript / Notes</label>
+              <textarea
+                value={transcript}
+                onChange={e => setTranscript(e.target.value)}
+                placeholder="Voice inspection notes or delivery transcript..."
+                rows={2}
+                className="w-full border-2 border-border rounded-md px-3 py-2 text-xs bg-background font-mono"
+              />
+            </div>
+
             {/* Confirmation box */}
             <div className="border-2 border-border p-3 bg-muted/30 text-sm space-y-1">
               <p className="font-black">Confirm {selectedAction?.toUpperCase()}</p>
@@ -448,18 +486,30 @@ export function QRScannerModal({ open, onClose, onActionComplete, sites = [], in
             <h3 className="font-black text-xl">
               {selectedAction?.charAt(0).toUpperCase()}{selectedAction?.slice(1)} Recorded
             </h3>
-            <div className="border-2 border-border p-4 text-left text-sm space-y-1">
-              <p><span className="text-muted-foreground">Batch:</span> <strong className="font-mono">{actionResult.batch_code}</strong></p>
+            <div className="border-2 border-border p-4 text-left text-sm space-y-2">
+              <p><span className="text-muted-foreground">Batch Code:</span> <strong className="font-mono">{actionResult.batch_code}</strong></p>
               {actionResult.remaining !== undefined && (
-                <p><span className="text-muted-foreground">Remaining:</span> <strong>{actionResult.remaining} {passport?.unit}</strong></p>
+                <p><span className="text-muted-foreground">Remaining Stock:</span> <strong>{actionResult.remaining} {passport?.unit}</strong></p>
               )}
               {actionResult.discrepancy && (
                 <p className="text-amber-600 font-medium">
-                  ⚠️ Discrepancy recorded: {actionResult.discrepancy.diff > 0 ? '+' : ''}{actionResult.discrepancy.diff} {passport?.unit}
+                  ⚠️ Discrepancy logged: {actionResult.discrepancy.diff > 0 ? '+' : ''}{actionResult.discrepancy.diff} {passport?.unit}
                 </p>
               )}
+              {proofImage && (
+                <div className="pt-1 border-t border-border text-xs">
+                  <span className="text-muted-foreground font-bold">📷 Proof Photo Attached:</span>
+                  <p className="font-mono text-primary font-bold mt-0.5">{proofImage}</p>
+                </div>
+              )}
+              {transcript && (
+                <div className="pt-1 border-t border-border text-xs">
+                  <span className="text-muted-foreground font-bold">🎤 Inspection Transcript:</span>
+                  <p className="font-mono text-muted-foreground italic mt-0.5">"{transcript}"</p>
+                </div>
+              )}
               {actionResult.status && (
-                <p><span className="text-muted-foreground">Status:</span> <strong>{actionResult.status.replace(/_/g, ' ')}</strong></p>
+                <p className="pt-1 text-xs"><span className="text-muted-foreground">Status:</span> <strong>{actionResult.status.replace(/_/g, ' ')}</strong></p>
               )}
             </div>
             <div className="flex gap-2">

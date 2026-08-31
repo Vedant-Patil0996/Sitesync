@@ -164,6 +164,32 @@ async def create_request(
     audit(db, current_user, "material_request.created", "material_request", new_request.id, {"site_id": request.site_id, "quantity": request.quantity})
     db.commit()
     db.refresh(new_request)
+
+    # Automatically notify Admin & PM with full contractor form details
+    try:
+        from app.services.notification_service import create_alert_and_notify
+        prio_str = (request.priority or 'normal').upper()
+        est_cost_str = f"${total_cost:,.2f}" if total_cost is not None else "N/A"
+        report_text = (
+            f"# Critical Material Request Submitted\n"
+            f"Contractor {current_user.name} submitted a new material request for {site.name}.\n"
+            f"- Material: {material.name} ({request.quantity} {material.unit})\n"
+            f"- Priority: {prio_str}\n"
+            f"- Site: {site.name}\n"
+            f"- Requested By: {current_user.name}\n"
+            f"- Target Delivery Date: {request.required_date or 'Immediate'}\n"
+            f"- Estimated Cost: {est_cost_str}\n"
+            f"- Justification: {request.justification or 'Field material requirement'}\n"
+        )
+        create_alert_and_notify(
+            db=db,
+            site_id=request.site_id,
+            report=report_text,
+            scenario_id="stock_critically_low",
+            run_id=f"req_{new_request.id}"
+        )
+    except Exception as e:
+        print(f"[Procurement] Material request notification error: {e}", flush=True)
     
     return MaterialRequestSchema(
         id=new_request.id,

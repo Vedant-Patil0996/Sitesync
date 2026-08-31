@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 37 53% 93%;           /* #F7F0E5 warm ivory */
+    --foreground: 10 22% 11%;           /* #211715 dark espresso */
+
+    --card: 37 53% 96%;                 /* warm ivory card */
+    --card-foreground: 10 22% 11%;
+    --popover: 37 53% 96%;
+    --popover-foreground: 10 22% 11%;
+
+    --primary: 354 54% 43%;             /* #A8323E Crimson */
+    --primary-foreground: 37 53% 93%;   /* warm ivory text */
+
+    --secondary: 34 41% 86%;            /* #E9DCCB soft sand */
+    --secondary-foreground: 14 30% 22%; /* cocoa text */
+
+    --muted: 34 30% 88%;
+    --muted-foreground: 14 30% 22%;
+
+    --accent: 9 38% 31%;                /* #6E3B32 mahogany */
+    --accent-foreground: 37 53% 93%;
+
+    --destructive: 354 54% 43%;
+    --destructive-foreground: 37 53% 93%;
+
+    --border: 10 22% 11%;                /* dark espresso borders */
+    --input: 10 22% 11%;
+    --ring: 354 54% 43%;                 /* Crimson focus ring */
+
+    --radius: 0.25rem;
+    --brutal-shadow: #211715;           /* dark espresso neobrutalist shadow */
+
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    padding-top: var(--sat, 0px);
+    padding-bottom: var(--sab, 0px);
+    padding-left: var(--sal, 0px);
+    padding-right: var(--sar, 0px);
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .brutal-border {
+    border-width: 2px;
+    border-color: hsl(var(--border));
+  }
+  .brutal-border-3 {
+    border-width: 3px;
+    border-color: hsl(var(--border));
+  }
+  .brutal-card {
+    border-width: 2px;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    box-shadow: 4px 4px 0px 0px var(--brutal-shadow);
+  }
+  .brutal-input {
+    border-width: 2px;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+  }
+  .brutal-btn {
+    border-width: 2px;
+    border-color: hsl(var(--border));
+    font-weight: 700;
+    box-shadow: 4px 4px 0px 0px var(--brutal-shadow);
+    transition: all 0.15s ease;
+  }
+  .brutal-badge {
+    border-width: 2px;
+    border-color: hsl(var(--border));
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+}
+
+.active-tap {
+  transition: transform 0.1s ease;
+}
+.active-tap:active {
+  transform: scale(0.96);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #4A3028;
+  border-radius: 3px;
+}

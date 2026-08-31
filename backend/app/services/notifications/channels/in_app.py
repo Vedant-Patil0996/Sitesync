@@ -23,9 +23,17 @@ class InAppChannel(NotificationChannel):
             }
         }
         
-        # We publish to a user-specific topic, e.g. "user_{user.id}"
+        # Publish to user-specific topic, e.g. "user_{user.id}"
         topic = f"user_{user.id}"
         
-        # Use sync publisher since this is called within the synchronous DB transaction/service
-        loop = asyncio.get_event_loop()
-        event_manager.publish_sync(topic, payload, loop)
+        # Safely find active main event loop for cross-thread publish
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            try:
+                loop = asyncio.get_event_loop_policy().get_event_loop()
+            except Exception:
+                loop = None
+
+        if loop and loop.is_running():
+            event_manager.publish_sync(topic, payload, loop)

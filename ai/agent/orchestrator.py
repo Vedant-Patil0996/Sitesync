@@ -51,7 +51,7 @@ class AgentState(TypedDict):
 
 
 # Use Groq LLM with retries to handle rate limits
-llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0, max_retries=5)
+llm = ChatGroq(model="qwen/qwen3.6-27b", temperature=0, max_retries=5)
 
 
 # ── Node helpers ───────────────────────────────────────────────────────────────

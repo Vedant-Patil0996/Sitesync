@@ -1,10 +1,8 @@
-import google.generativeai as genai
+from google import genai
 import os
 import re
 import json
 import threading
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="google")
 
 # ---------------------------------------------------------------------------
 # Keyword/regex extractor — runs FIRST, instant, no API calls
@@ -135,8 +133,7 @@ def _gemini_extract(speech: str, api_key: str) -> dict | None:
     def _call():
         for model_name in ["gemini-3.5-flash-lite", "gemini-3.6-flash"]:
             try:
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel(model_name)
+                client = genai.Client(api_key=api_key)
                 prompt = (
                     "Extract details from the following speech into a JSON object with these keys:\n"
                     '  "material": string (e.g. "cement", "PVC pipes", "bricks") or null\n'
@@ -146,7 +143,10 @@ def _gemini_extract(speech: str, api_key: str) -> dict | None:
                     f"Speech: {speech}\n\n"
                     "Return ONLY valid JSON with those four keys. No markdown, no extra text."
                 )
-                resp = model.generate_content(prompt)
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
                 text = resp.text.strip()
                 text = re.sub(r"^```(?:json)?\s*", "", text)
                 text = re.sub(r"\s*```$", "", text)

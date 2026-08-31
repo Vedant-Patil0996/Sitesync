@@ -1,9 +1,7 @@
-import google.generativeai as genai
+from google import genai
 import os
 import re
 import threading
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="google")
 
 # ---------------------------------------------------------------------------
 # Keyword-based classifier — runs FIRST, instant, no API calls
@@ -14,6 +12,7 @@ _STOCK_KEYWORDS = [
 ]
 _CREATE_KEYWORDS = [
     "request", "order", "add", "need", "want", "send", "deliver", "supply",
+    "chahiye", "mangaao", "mangao", "bhejo", "laao", "magwao",
     "मंगाओ", "मागवा", "चाहिए", "लाओ", "भेजो", "मागणी", "ऑर्डर"
 ]
 _EQUIPMENT_KEYWORDS = [
@@ -21,7 +20,7 @@ _EQUIPMENT_KEYWORDS = [
     "machinery", "tool", "मशीन", "उपकरण"
 ]
 _BUDGET_KEYWORDS = [
-    "budget", "cost", "expense", "spend", "money", "खर्च", "बजट"
+    "budget", "cost", "expense", "spend", "money", "kharch", "kharcha", "खर्च", "बजट"
 ]
 _FAQ_KEYWORDS = [
     "what is", "how does", "explain", "tell me about", "sitesync", "workflow",
@@ -31,14 +30,15 @@ _FAQ_KEYWORDS = [
 def _keyword_classify(speech: str, role: str) -> str:
     """Fast keyword-based classifier — zero latency, no API calls."""
     text = speech.lower()
-    if any(k in text for k in _STOCK_KEYWORDS):
-        return "stock_query"
-    if any(k in text for k in _CREATE_KEYWORDS):
-        return "create_request"
-    if any(k in text for k in _EQUIPMENT_KEYWORDS):
-        return "equipment_query"
+    # Check specific domain nouns first to avoid generic "kitna" misclassifications
     if any(k in text for k in _BUDGET_KEYWORDS):
         return "budget_query"
+    if any(k in text for k in _EQUIPMENT_KEYWORDS):
+        return "equipment_query"
+    if any(k in text for k in _CREATE_KEYWORDS):
+        return "create_request"
+    if any(k in text for k in _STOCK_KEYWORDS):
+        return "stock_query"
     if any(k in text for k in _FAQ_KEYWORDS):
         return "general_faq"
     return "unclear"
@@ -54,8 +54,7 @@ def _gemini_classify(speech: str, role: str, api_key: str) -> str:
     def _call():
         for model_name in ["gemini-3.5-flash-lite", "gemini-3.6-flash"]:
             try:
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel(model_name)
+                client = genai.Client(api_key=api_key)
                 prompt = (
                     "Classify the following user speech into exactly ONE of these intent labels:\n"
                     "- create_request  (user wants to order/request materials)\n"
@@ -67,7 +66,10 @@ def _gemini_classify(speech: str, role: str, api_key: str) -> str:
                     f"Speech: {speech}\nRole: {role}\n\n"
                     "Respond with ONLY the intent label, nothing else."
                 )
-                resp = model.generate_content(prompt)
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
                 result = resp.text.strip().lower()
                 valid = {"create_request", "stock_query", "equipment_query",
                          "budget_query", "general_faq", "unclear"}
