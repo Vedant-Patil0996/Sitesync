@@ -4,6 +4,18 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.alert import Notification, Alert
 from app.services.notifications.base import NotificationChannel
+import re
+
+def _markdown_to_whatsapp(md_text: str) -> str:
+    if not md_text:
+        return ""
+    # Convert headings (#, ##, ###) to WhatsApp bold
+    text = re.sub(r'^(#{1,6})\s+(.*)$', r'*\2*', md_text, flags=re.MULTILINE)
+    # Convert bold (**text**) to WhatsApp bold (*text*)
+    text = re.sub(r'\*\*(.*?)\*\*', r'*\1*', text)
+    # Convert markdown links [text](url) to "text (url)"
+    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1 (\2)', text)
+    return text
 
 class WhatsAppChannel(NotificationChannel):
     def send(self, db: Session, user: User, notification: Notification, alert: Alert):
@@ -32,9 +44,13 @@ class WhatsAppChannel(NotificationChannel):
         if len(target_number) == 10:
             target_number = f"91{target_number}"
 
+        # Use the full AI report (alert.description) instead of the short notification message
+        full_report = alert.description if alert.description else notification.message
+        wa_formatted_body = f"*{alert.title}*\n\n{_markdown_to_whatsapp(full_report)}"
+
         payload = {
             "to": target_number,
-            "body": notification.message
+            "body": wa_formatted_body
         }
         
         headers = {

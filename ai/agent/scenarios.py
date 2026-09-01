@@ -13,8 +13,8 @@ SCENARIOS = [
         "tags": ["equipment", "safety"],
         "payload_template": {
             "log_type": "equipment_status",
-            "site_id": "63",
-            "equipment_id": "33",
+            "site_id": "{site_id}",
+            "equipment_id": "{equipment_id}",
             "status": "critical_failure",
             "timestamp": "{timestamp}"
         }
@@ -28,8 +28,8 @@ SCENARIOS = [
         "tags": ["inventory", "procurement"],
         "payload_template": {
             "log_type": "inventory_alert",
-            "site_id": "62",
-            "material_id": "61",
+            "site_id": "{site_id}",
+            "material_id": "{material_id}",
             "current_quantity": 15,
             "min_threshold": 100,
             "unit": "bags",
@@ -45,7 +45,7 @@ SCENARIOS = [
         "tags": ["finance", "budget"],
         "payload_template": {
             "log_type": "budget_alert",
-            "site_id": "64",
+            "site_id": "{site_id}",
             "allocated_budget": 5500000,
             "spent_to_date": 3980000,
             "days_remaining_in_period": 12,
@@ -61,8 +61,8 @@ SCENARIOS = [
         "tags": ["project", "schedule"],
         "payload_template": {
             "log_type": "task_delay",
-            "site_id": "61",
-            "task_id": "123",
+            "site_id": "{site_id}",
+            "task_id": "{task_id}",
             "delay_days": 5,
             "cause": "adverse_weather",
             "timestamp": "{timestamp}"
@@ -77,8 +77,8 @@ SCENARIOS = [
         "tags": ["procurement", "vendor"],
         "payload_template": {
             "log_type": "price_anomaly",
-            "site_id": "64",
-            "material_id": "69",
+            "site_id": "{site_id}",
+            "material_id": "{material_id}",
             "vendor_price": 8500,
             "market_benchmark": 6300,
             "deviation_percent": 34.9,
@@ -94,10 +94,10 @@ SCENARIOS = [
         "tags": ["equipment", "inventory", "finance", "multi-agent"],
         "payload_template": {
             "log_type": "cascading_emergency",
-            "site_id": "62",
+            "site_id": "{site_id}",
             "events": [
-                {"type": "equipment_failure", "equipment_id": "CRN-01", "status": "critical_failure"},
-                {"type": "stock_critical", "material_id": "61", "quantity_remaining": 5}
+                {"type": "equipment_failure", "equipment_id": "{equipment_id}", "status": "critical_failure"},
+                {"type": "stock_critical", "material_id": "{material_id}", "quantity_remaining": 5}
             ],
             "timestamp": "{timestamp}"
         }
@@ -111,9 +111,9 @@ SCENARIOS = [
         "tags": ["safety", "compliance"],
         "payload_template": {
             "log_type": "safety_violation",
-            "site_id": "62",
+            "site_id": "{site_id}",
             "violation_count": 3,
-            "equipment_ids": ["33"],
+            "equipment_ids": ["{equipment_id}"],
             "violation_types": ["missing_inspection_cert", "operator_license_expired"],
             "timestamp": "{timestamp}"
         }

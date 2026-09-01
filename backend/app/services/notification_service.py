@@ -91,7 +91,7 @@ def create_alert_and_notify(
         type=alert_type,
         severity=severity,
         title=f"AI Investigation: {title}",
-        description=summary,
+        description=report,  # Save the full comprehensive report here
         source_table="ai_runs",
         status="open",
     )
@@ -136,8 +136,9 @@ def create_alert_and_notify(
 
     db.commit()
     
-    # After commit, dispatch them to channels
-    for user, notif in notifications_created:
+    # Dispatch only 1 notification for now to prevent duplicate messages for multiple site users
+    if notifications_created:
+        user, notif = notifications_created[0]
         dispatcher.dispatch(db, user, notif, alert)
 
     try:

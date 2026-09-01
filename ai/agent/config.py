@@ -64,6 +64,11 @@ def get_transaction_history(material_id: str, site_id: str, days: int = 14, type
     return json.dumps(stock.get_transaction_history(material_id, site_id, days, type))
 
 @tool
+def get_stock_level(material_id: str, site_id: str) -> dict:
+    """Get the current stock quantity and max capacity for a material at a specific site."""
+    return json.dumps(stock.get_stock_level(material_id, site_id))
+
+@tool
 def compare_across_sites(material_id: str, exclude_site_id: str) -> list:
     """Stock of a material at other sites, flagged for surplus against max_capacity."""
     return json.dumps(stock.compare_across_sites(material_id, exclude_site_id))
@@ -155,6 +160,7 @@ def get_market_price_benchmark(material_id: str) -> str:
     return json.dumps(procurement.get_market_price_benchmark(material_id))
 
 stock_tools = [
+    get_stock_level,
     get_transaction_history,
     compare_across_sites,
     get_consumption_rate_history,

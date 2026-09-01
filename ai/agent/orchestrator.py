@@ -51,7 +51,7 @@ class AgentState(TypedDict):
 
 
 # Use Groq LLM with retries to handle rate limits
-llm = ChatGroq(model="qwen/qwen3.6-27b", temperature=0, max_retries=5)
+llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0, max_retries=5, max_tokens=2560)
 
 
 # ── Node helpers ───────────────────────────────────────────────────────────────
@@ -140,8 +140,12 @@ def supervisor_node(state: AgentState) -> dict:
         _emit_event("AGENT_COMPLETED", "SUPERVISOR", "Defaulting to FINISH due to API error", data={"next_node": "FINISH"})
         return {"next_node": "FINISH", "visited_nodes": []}
 
+    import re
     try:
         content = response.content.strip()
+        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
+        content = re.sub(r'<think>.*', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
+        
         if content.startswith("```json"):
             content = content[7:-3].strip()
         elif content.startswith("```"):
@@ -237,8 +241,13 @@ def reporter_node(state: AgentState) -> dict:
     time.sleep(1.5)
     
     try:
+        import re
         response = llm.invoke([prompt] + clean_messages)
         content = response.content
+        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
+        content = re.sub(r'<think>.*', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
+        if not content:
+            content = "## Fallback Report\n\nThe AI model did not output a final summary after its reasoning step. Please review the agent traces for details."
     except Exception as e:
         # Fallback if Groq API throws 400 Parsing Failed or other errors
         _emit_event("MESSAGE", "SYSTEM", f"Reporter LLM encountered an API error: {str(e)[:100]}... Falling back to raw summary.")

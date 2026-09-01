@@ -2,6 +2,28 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List
 from ai.core.config import supabase
 
+def get_stock_level(material_id: str, site_id: str) -> Dict[str, Any]:
+    """Get the current stock quantity and max capacity for a material at a specific site."""
+    try:
+        if not str(material_id).isdigit() or not str(site_id).isdigit():
+            return {"error": f"Invalid material_id '{material_id}' or site_id '{site_id}'. Expected numeric IDs."}
+        response = supabase.table('inventory').select(
+            'quantity, max_capacity, sites(name)'
+        ).eq('material_id', material_id).eq('site_id', site_id).execute()
+        
+        if not response.data:
+            return {"error": f"No inventory record found for material {material_id} at site {site_id}."}
+            
+        row = response.data[0]
+        return {
+            'site_id': site_id,
+            'site_name': row.get('sites', {}).get('name'),
+            'quantity': row.get('quantity', 0),
+            'max_capacity': row.get('max_capacity')
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 def get_transaction_history(material_id: str, site_id: str, days: int = 14, type: str = None) -> List[Dict[str, Any]]:
     try:
         if not str(material_id).isdigit() or not str(site_id).isdigit():

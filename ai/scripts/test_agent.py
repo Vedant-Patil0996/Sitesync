@@ -18,12 +18,14 @@ from ai.agent.orchestrator import handle_alert
 from ai.agent.scenarios import SCENARIOS
 
 
-def _build_payload(scenario: dict, site_id: str, material_id: str) -> str:
-    """Fill in {site_id}, {material_id}, {timestamp} placeholders in the template."""
+def _build_payload(scenario: dict, site_id: str, material_id: str, equipment_id: str, task_id: str) -> str:
+    """Fill in {site_id}, {material_id}, {equipment_id}, {task_id}, {timestamp} placeholders in the template."""
     template = scenario["payload_template"]
     raw = json.dumps(template)
     raw = raw.replace('"{site_id}"', f'"{site_id}"')
     raw = raw.replace('"{material_id}"', f'"{material_id}"')
+    raw = raw.replace('"{equipment_id}"', f'"{equipment_id}"')
+    raw = raw.replace('"{task_id}"', f'"{task_id}"')
     raw = raw.replace('"{timestamp}"', f'"{datetime.now(timezone.utc).isoformat()}"')
     return raw
 
@@ -49,7 +51,18 @@ def main():
     site_id = env_site_id or str(inv_resp.data[0]['site_id'])
     material_id = env_material_id or str(inv_resp.data[0]['material_id'])
 
-    payload = _build_payload(scenario, site_id, material_id)
+    # Dynamically fetch an equipment and task for the site so queries succeed
+    eq_resp = supabase.table('equipment').select('id').eq('site_id', int(site_id)).limit(1).execute()
+    equipment_id = str(eq_resp.data[0]['id']) if eq_resp.data else "1"
+
+    proj_resp = supabase.table('projects').select('id').eq('site_id', int(site_id)).limit(1).execute()
+    if proj_resp.data:
+        task_resp = supabase.table('tasks').select('id').eq('project_id', int(proj_resp.data[0]['id'])).limit(1).execute()
+        task_id = str(task_resp.data[0]['id']) if task_resp.data else "123"
+    else:
+        task_id = "123"
+
+    payload = _build_payload(scenario, site_id, material_id, equipment_id, task_id)
 
     print(f"\n[Scenario] {scenario['icon']} {scenario['label']}", flush=True)
     print(f"[Payload] {payload}\n", flush=True)
