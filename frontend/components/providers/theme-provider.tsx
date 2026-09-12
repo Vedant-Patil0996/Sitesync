@@ -19,8 +19,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem('sitesync-theme') as Theme | null;
     if (stored) {
       setThemeState(stored);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setThemeState('dark');
+    } else {
+      setThemeState('light');
     }
   }, []);
 
