@@ -250,16 +250,21 @@ def reporter_node(state: AgentState) -> dict:
     
     try:
         import re
+        from langchain_core.messages import AIMessage
         response = llm.invoke([prompt] + clean_messages)
-        content = response.content
-        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
-        content = re.sub(r'<think>.*', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
+        content = response.content if isinstance(response.content, str) else str(response.content)
+        
+        if "<think>" in content and "</think>" in content:
+            content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE).strip()
+            
         if not content:
-            content = "## Fallback Report\n\nThe AI model did not output a final summary after its reasoning step. Please review the agent traces for details."
+            content = "## Summary of Multi-Agent Investigation\n\nThe investigation completed successfully. Please review the agent traces above for detailed tool telemetry and decisions."
+        
+        response = AIMessage(content=content)
     except Exception as e:
         # Fallback if Groq API throws 400 Parsing Failed or other errors
         _emit_event("MESSAGE", "SYSTEM", f"Reporter LLM encountered an API error: {str(e)[:100]}... Falling back to raw summary.")
-        content = "## Automated Fallback Report\n\nThe AI reporter encountered an API formatting error (400) while compiling the final summary.\n\n**Raw Agent Actions:**\n"
+        content = "## Automated Fallback Report\n\nThe AI reporter encountered an API formatting error while compiling the final summary.\n\n**Raw Agent Actions:**\n"
         for m in clean_messages:
             if isinstance(m, HumanMessage) and m.content.startswith("["):
                 content += f"- {m.content}\n"

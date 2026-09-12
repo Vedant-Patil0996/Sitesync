@@ -101,20 +101,26 @@ def _run_agent(run_id: str, loop: asyncio.AbstractEventLoop, scenario_id: str, s
 
     finally:
         # ── Insert Alert + Notifications into DB ──────────────────────────
-        # Default to site_id="1" if none provided so notifications always fire
-        effective_site_id = site_id if site_id else "1"
-        if final_report and effective_site_id:
+        if final_report:
             try:
                 from app.services.notification_service import create_alert_and_notify
+                from app.models.site import Site
                 db: Session = SessionLocal()
                 try:
-                    create_alert_and_notify(
-                        db=db,
-                        site_id=int(effective_site_id),
-                        report=final_report,
-                        scenario_id=scenario_id,
-                        run_id=run_id,
-                    )
+                    target_site = None
+                    if site_id and site_id.isdigit():
+                        target_site = db.query(Site).filter(Site.id == int(site_id)).first()
+                    if not target_site:
+                        target_site = db.query(Site).first()
+                    
+                    if target_site:
+                        create_alert_and_notify(
+                            db=db,
+                            site_id=target_site.id,
+                            report=final_report,
+                            scenario_id=scenario_id,
+                            run_id=run_id,
+                        )
                 finally:
                     db.close()
             except Exception as e:
