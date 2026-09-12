@@ -73,12 +73,12 @@ def seed():
         print(f"  Company: {company.name}  (id={cid})")
 
         # 2. USERS
-        def make_user(name, email, role, phone=None):
+        def make_user(name, email, role, phone=None, password="Demo@1234"):
             u, _ = get_or_create(
                 db, User, {"email": email},
                 {
                     "company_id": cid, "name": name,
-                    "password_hash": get_hash("Demo@1234"),
+                    "password_hash": get_hash(password),
                     "phone": phone, "role": role, "is_active": True,
                 }
             )
@@ -98,7 +98,14 @@ def seed():
         c6    = make_user("Mohan Das",      "mohan.c@sitesync.demo",        "contractor", "+91-9100000006")
         c7    = make_user("Lakshmi Menon",  "lakshmi.c@sitesync.demo",      "contractor", "+91-9100000007")
         c8    = make_user("Rajesh Gupta",   "rajesh.c@sitesync.demo",       "contractor", "+91-9100000008")
-        print(f"  Users: 14")
+
+        # Convenience demo login accounts (Password: password123)
+        u_admin_local = make_user("Default Admin",      "admin@sitesync.local",      "admin",      "+91-9999900001", "password123")
+        u_pm_local    = make_user("Default PM",         "pm@sitesync.local",         "pm",         "+91-9999900002", "password123")
+        u_fin_local   = make_user("Default Finance",    "finance@sitesync.local",    "finance",    "+91-9999900003", "password123")
+        u_con_local   = make_user("Default Contractor", "contractor@sitesync.local", "contractor", "+91-9999900004", "password123")
+
+        print(f"  Users: 18 (including local accounts)")
 
         # 3. SITES
         def make_site(name, location, lat, lng):
@@ -114,6 +121,7 @@ def seed():
         site_apex = make_site("Apex Hospital",     "Powai, Mumbai",            19.1176, 72.9060)
         site_tech = make_site("Tech Park",         "Navi Mumbai, Maharashtra", 19.0330, 73.0297)
         site_cst  = make_site("Coastal Residency", "Vasai, Maharashtra",       19.3939, 72.8397)
+        all_sites = [site_mum, site_riv, site_apex, site_tech, site_cst]
         print("  Sites: 5")
 
         def assign(site, user, role):
@@ -131,6 +139,13 @@ def seed():
             assign(site_tech, u, r)
         for u, r in [(admin,"admin"),(pm2,"pm"),(c8,"contractor"),(fin1,"finance")]:
             assign(site_cst, u, r)
+
+        # Assign convenience accounts to all sites
+        for site in all_sites:
+            assign(site, u_admin_local, "admin")
+            assign(site, u_pm_local, "pm")
+            assign(site, u_fin_local, "finance")
+            assign(site, u_con_local, "contractor")
 
         # 4. MATERIALS
         def make_mat(name, unit, reorder):
@@ -668,7 +683,7 @@ def seed():
                 db.add(Notification(
                     user_id=user.id, alert_id=alert.id if alert else None,
                     related_entity_type=entity_type, related_entity_id=entity_id,
-                    title=title, message=message, is_read=False,
+                    title=title, message=message,
                 ))
         db.flush()
         print(f"  Notifications: {len(notif_raw)}")
