@@ -16,10 +16,15 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'SiteSync — Construction Resource Management',
-  description: 'Multi-site construction resource management for Indian construction companies.',
+  title: 'SiteSync',
+  description: 'Multi-site construction resource management platform',
   manifest: '/manifest.json',
   themeColor: '#A8323E',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -40,6 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#A8323E" />
         <meta name="mobile-web-app-capable" content="yes" />
