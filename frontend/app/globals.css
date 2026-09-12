@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  zoom: 1.1;
+}
+
 @layer base {
   :root {
     /* ── Final Palette ────────────────────────────────────────────
@@ -15,29 +19,37 @@
     ──────────────────────────────────────────────────────────── */
 
     /* page / canvas */
-    --background: 37 53% 93%;           /* #F7F0E5 warm ivory */
-    --foreground: 10 22% 11%;           /* #211715 dark espresso */
+    --background: 37 53% 93%;
+    /* #F7F0E5 warm ivory */
+    --foreground: 10 22% 11%;
+    /* #211715 dark espresso */
 
     /* card & popover */
-    --card: 37 53% 96%;                 /* slightly lighter warm ivory */
+    --card: 37 53% 96%;
+    /* slightly lighter warm ivory */
     --card-foreground: 10 22% 11%;
     --popover: 37 53% 96%;
     --popover-foreground: 10 22% 11%;
 
     /* primary — Crimson */
-    --primary: 354 54% 43%;             /* #A8323E */
-    --primary-foreground: 37 53% 93%;   /* warm ivory text on crimson */
+    --primary: 354 54% 43%;
+    /* #A8323E */
+    --primary-foreground: 37 53% 93%;
+    /* warm ivory text on crimson */
 
     /* secondary — Soft Sand */
-    --secondary: 34 41% 86%;            /* #E9DCCB */
-    --secondary-foreground: 14 30% 22%; /* cocoa text */
+    --secondary: 34 41% 86%;
+    /* #E9DCCB */
+    --secondary-foreground: 14 30% 22%;
+    /* cocoa text */
 
     /* muted — soft sand / taupe tint */
     --muted: 34 30% 88%;
     --muted-foreground: 14 30% 22%;
 
     /* accent — Mahogany */
-    --accent: 9 38% 31%;                /* #6E3B32 */
+    --accent: 9 38% 31%;
+    /* #6E3B32 */
     --accent-foreground: 37 53% 93%;
 
     /* destructive — Crimson */
@@ -45,48 +57,64 @@
     --destructive-foreground: 37 53% 93%;
 
     /* borders & inputs */
-    --border: 10 22% 11%;                /* dark espresso borders (neobrutalist) */
+    --border: 10 22% 11%;
+    /* dark espresso borders (neobrutalist) */
     --input: 10 22% 11%;
-    --ring: 354 54% 43%;                 /* Crimson focus ring */
+    --ring: 354 54% 43%;
+    /* Crimson focus ring */
 
     /* chart series */
-    --chart-1: 354 54% 43%;             /* Crimson */
-    --chart-2: 9 38% 31%;               /* Mahogany */
-    --chart-3: 6 37% 66%;               /* Muted Rose */
-    --chart-4: 14 30% 22%;              /* Cocoa */
-    --chart-5: 37 53% 93%;              /* Warm Ivory */
+    --chart-1: 354 54% 43%;
+    /* Crimson */
+    --chart-2: 9 38% 31%;
+    /* Mahogany */
+    --chart-3: 6 37% 66%;
+    /* Muted Rose */
+    --chart-4: 14 30% 22%;
+    /* Cocoa */
+    --chart-5: 37 53% 93%;
+    /* Warm Ivory */
 
     --radius: 0.25rem;
-    --brutal-shadow: #211715;           /* dark espresso neobrutalist shadow */
+    --brutal-shadow: #211715;
+    /* dark espresso neobrutalist shadow */
   }
 
   .dark {
     /* dark mode: flip to dark espresso canvas, warm ivory text */
-    --background: 10 22% 11%;           /* #211715 dark espresso */
-    --foreground: 37 53% 93%;           /* warm ivory text */
+    --background: 10 22% 11%;
+    /* #211715 dark espresso */
+    --foreground: 37 53% 93%;
+    /* warm ivory text */
 
-    --card: 14 30% 22%;                 /* cocoa card background */
+    --card: 14 30% 22%;
+    /* cocoa card background */
     --card-foreground: 37 53% 93%;
     --popover: 14 30% 22%;
     --popover-foreground: 37 53% 93%;
 
     /* primary — Crimson */
-    --primary: 354 54% 43%;             /* #A8323E */
-    --primary-foreground: 10 22% 11%;   /* dark espresso text on Crimson */
+    --primary: 354 54% 43%;
+    /* #A8323E */
+    --primary-foreground: 10 22% 11%;
+    /* dark espresso text on Crimson */
 
-    --secondary: 9 38% 31%;             /* #6E3B32 mahogany secondary */
+    --secondary: 9 38% 31%;
+    /* #6E3B32 mahogany secondary */
     --secondary-foreground: 37 53% 93%;
 
     --muted: 14 20% 18%;
     --muted-foreground: 37 30% 75%;
 
-    --accent: 6 37% 66%;                /* #C98F89 muted rose */
+    --accent: 6 37% 66%;
+    /* #C98F89 muted rose */
     --accent-foreground: 10 22% 11%;
 
     --destructive: 354 54% 43%;
     --destructive-foreground: 37 53% 93%;
 
-    --border: 37 53% 93%;               /* warm ivory borders on dark */
+    --border: 37 53% 93%;
+    /* warm ivory borders on dark */
     --input: 37 53% 93%;
     --ring: 354 54% 43%;
 
@@ -96,7 +124,8 @@
     --chart-4: 37 53% 93%;
     --chart-5: 14 30% 22%;
 
-    --brutal-shadow: #F7F0E5;           /* warm ivory shadow on dark */
+    --brutal-shadow: #F7F0E5;
+    /* warm ivory shadow on dark */
   }
 }
 
@@ -104,6 +133,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -114,21 +144,27 @@
   .brutal-border {
     @apply border-2 border-border;
   }
+
   .brutal-border-3 {
     @apply border-[3px] border-border;
   }
+
   .brutal-card {
     @apply border-2 border-border bg-card text-card-foreground shadow-brutal;
   }
+
   .brutal-input {
     @apply border-2 border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus:border-primary;
   }
+
   .brutal-btn {
     @apply border-2 border-border font-bold shadow-brutal transition-all active:translate-x-1 active:translate-y-1 active:shadow-brutal-sm;
   }
+
   .brutal-btn-hover {
     @apply hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm;
   }
+
   .brutal-badge {
     @apply border-2 border-border font-semibold text-xs tracking-normal;
   }
@@ -138,13 +174,16 @@
   .scrollbar-thin {
     scrollbar-width: thin;
   }
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
+
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
