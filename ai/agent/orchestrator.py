@@ -150,7 +150,13 @@ def supervisor_node(state: AgentState) -> dict:
             content = content[7:-3].strip()
         elif content.startswith("```"):
             content = content[3:-3].strip()
-        data = json.loads(content)
+        
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            data = json.loads(json_match.group(0))
+        else:
+            data = json.loads(content)
+
         next_node = data.get("next_node", "FINISH")
         reasoning = data.get("reasoning", "No reasoning provided.")
         _emit_event("AGENT_COMPLETED", "SUPERVISOR", reasoning, data={"next_node": next_node})
@@ -223,6 +229,8 @@ def reporter_node(state: AgentState) -> dict:
     prompt = SystemMessage(content=(
         "You are the Master Reporter. Review the entire multi-agent investigation history.\n"
         "Compile a final, comprehensive report of findings and recommendations. Focus on grounding and safety.\n"
+        "IMPORTANT: You are the final node. Do NOT call any tools. Do NOT output tool calls, JSON, or <tool_call> tags.\n"
+        "Output ONLY formatted Markdown text with: Executive Summary, Key Findings, and Recommended Actions.\n"
         "\nREPORT FORMAT RULES:\n"
         "- Cite DB-sourced facts as [source_table: record_id] (e.g. [equipment: 1], [tasks: 5]).\n"
         "- Cite provisional/estimated values as [provisional] (e.g. the proposed transfer reference number, estimated arrival date).\n"
