@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Terminal, FileText } from "lucide-react";
+import { getWsBase } from "@/lib/api";
 
 export interface AgentEvent {
   id: string;
@@ -74,7 +75,7 @@ export function LiveAgentTerminal({ runId, onActiveAgentChange, onRunComplete }:
     setFinalReport(null);
     setConnected(false);
 
-    const ws = new WebSocket(`ws://localhost:8000/api/v1/ai/stream/${runId}`);
+    const ws = new WebSocket(`${getWsBase()}/api/v1/ai/stream/${runId}`);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);

@@ -6,6 +6,7 @@ import { AIVisualGraph } from "@/components/AIVisualGraph";
 import { LiveAgentTerminal } from "@/components/LiveAgentTerminal";
 import { ScenarioSelector } from "@/components/ScenarioSelector";
 import { Play, RotateCcw, Loader2 } from "lucide-react";
+import { getApiBase } from "@/lib/api";
 
 export interface Scenario {
   id: string;
@@ -25,7 +26,7 @@ export default function LiveActivityPage() {
 
   // Fetch scenarios from backend
   useEffect(() => {
-    fetch("http://localhost:8000/api/v1/ai/scenarios")
+    fetch(`${getApiBase()}/api/v1/ai/scenarios`)
       .then((r) => r.json())
       .then((data) => {
         const list: Scenario[] = data.scenarios || [];
@@ -42,7 +43,7 @@ export default function LiveActivityPage() {
     setIsRunning(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/v1/ai/trigger", {
+      const response = await fetch(`${getApiBase()}/api/v1/ai/trigger`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenario_id: selectedScenario.id, site_id: "1" }),

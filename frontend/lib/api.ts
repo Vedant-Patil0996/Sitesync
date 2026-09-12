@@ -1,10 +1,17 @@
-function getApiBase(): string {
+export function getApiBase(): string {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    return `http://${host}:8000`;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8000';
+    }
   }
   return 'http://localhost:8000';
+}
+
+export function getWsBase(): string {
+  const apiBase = getApiBase();
+  return apiBase.replace(/^http(s?):/, 'ws$1:');
 }
 
 class ApiError extends Error {
